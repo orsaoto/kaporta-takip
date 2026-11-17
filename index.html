@@ -4,51 +4,283 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaporta & Hasar Güncel Araç Takip Paneli</title>
-  <style>
-    :root {
-      --bg: #f1f5f9;
-      --surface: #ffffff;
-      --primary: #1e293b;
-      --accent: #2563eb;
-      --border: #e2e8f0;
-      --text: #0f172a;
-      --muted: #64748b;
+  <title>Kaporta & Hasar Canlı Bulut Takip Paneli</title>
+  
+  <!-- Firebase SDK (Modular CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // --- SİZİN FİREBASE BİLGİLERİNİZ ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAXYhU-jKeTfn7rPLNPsaR_9a4uucyDglk",
+      authDomain: "kaporta-takip-78e5b.firebaseapp.com",
+      databaseURL: "https://kaporta-takip-78e5b-default-rtdb.firebaseio.com",
+      projectId: "kaporta-takip-78e5b",
+      storageBucket: "kaporta-takip-78e5b.firebasestorage.app",
+      messagingSenderId: "395154933101",
+      appId: "1:395154933101:web:f0ced7654eb3668c794664",
+      measurementId: "G-TYPWN0J6J8"
+    };
+
+    // Firebase Başlatma
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const STATUS_LIST = [
+      "MODÜL ONAY BEKLİYOR",
+      "EKSPER ONAYI BEKLİYOR",
+      "PERT DURUMU BEKLİYOR",
+      "PARÇALARI SİPARİŞ EDİLDİ",
+      "ONARIM RANDEVUSU VERİLDİ",
+      "ONARIM DEVAM EDİYOR",
+      "SON KONTROLDE",
+      "TESLİM EDİLDİ"
+    ];
+
+    const defaultVehicles = [
+      { id: 1, plaka: "34HVK191", musteri: "EFRAİL AKSÖZ", kasko: "GARANTİ", dosyaTarih: "2026-11-17", onarimTarih: "2026-11-17", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "GARANTİDEN HOPARLÖR VE CAM AÇMA DÜĞMESİ DEĞİŞTİ" },
+      { id: 2, plaka: "41ALV593", musteri: "STE PROJE", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-10-31", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
+      { id: 3, plaka: "41AVM820", musteri: "NECGÜL TURİZM", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-05", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
+      { id: 4, plaka: "34MYG759", musteri: "TEDİ DİSCOUNT", kasko: "HDİ SİGORTA", dosyaTarih: "2026-11-07", onarimTarih: "2026-11-11", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "TOPLANMA SÜRECİNDE TAHMİNİ TESLİM BU HAFTA İÇİ" },
+      { id: 5, plaka: "34HZR058", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE KATILIM SİGORTA", dosyaTarih: "2026-10-15", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "ANAHTAR KAYBI" },
+      { id: 6, plaka: "34DZF334", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ YAN HASARLI ORTALAMA TESLİM TARİHİ: BU HAFTA İÇİ" },
+      { id: 7, plaka: "34DAS608", musteri: "KNK GEMİ", kasko: "BEREKET SİGORTA", dosyaTarih: "2026-10-16", onarimTarih: "", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "" },
+      { id: 8, plaka: "34BDB775", musteri: "ONUR SÖNMEZ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "2026-11-14", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
+      { id: 9, plaka: "34CIG410", musteri: "HASAN HÜSEYİN ÇETİN", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-04", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA BEKLİYOR" },
+      { id: 10, plaka: "34EFE749", musteri: "EFE TUR", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 11, plaka: "34FND197", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-06", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 12, plaka: "34HZR088", musteri: "İBRAHİM AKKUŞ", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
+      { id: 13, plaka: "34HZR055", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 14, plaka: "34EKA037", musteri: "ERKAN KAHRAMAN", kasko: "ACNTÜRK SİGORTA", dosyaTarih: "2026-11-12", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
+      { id: 15, plaka: "34DPY796", musteri: "ÖMER ÇELİK", kasko: "DOĞA SİGORTA", dosyaTarih: "2026-10-07", onarimTarih: "", surec: "PERT DURUMU BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 16, plaka: "34GKH978", musteri: "GÖKHAN", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 17, plaka: "34FND148", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 18, plaka: "34SD1974", musteri: "SERDAR", kasko: "RAY SİGORTA", dosyaTarih: "2026-11-02", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 19, plaka: "34YUN260", musteri: "YUNUS", kasko: "ZURİCH SİGORTA", dosyaTarih: "2026-10-28", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 20, plaka: "34VUR775", musteri: "VURAL", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-10-27", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 21, plaka: "34HZR081", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 22, plaka: "34DZF342", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 23, plaka: "34DZF338", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 24, plaka: "34KUT259", musteri: "KUTLU", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
+      { id: 25, plaka: "34KP2161", musteri: "İSA ÇANKAYA", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
+      { id: 26, plaka: "34PER268", musteri: "FAHRETTİN AKBABA", kasko: "UNİCO SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "2026-11-07", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ KISIM HASARLI ORTALAMA TESLİM TARİHİ : BU HAFTA İÇİ" }
+    ];
+
+    let vehicles = [];
+
+    // Firebase'den Canlı Veri Dinleme
+    const dbRef = ref(db, 'vehicles');
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        vehicles = Object.keys(data).map(key => ({
+          firebaseKey: key,
+          ...data[key]
+        }));
+      } else {
+        set(dbRef, defaultVehicles);
+        vehicles = defaultVehicles;
+      }
+      renderTable();
+    });
+
+    function getTodayFormatted() {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
     }
 
+    window.getStatusClass = function(status) {
+      if (status === "MODÜL ONAY BEKLİYOR") return "st-modul";
+      if (status === "EKSPER ONAYI BEKLİYOR") return "st-eksper";
+      if (status === "PERT DURUMU BEKLİYOR") return "st-pert";
+      if (status === "PARÇALARI SİPARİŞ EDİLDİ") return "st-parca";
+      if (status === "ONARIM RANDEVUSU VERİLDİ") return "st-randevu";
+      if (status === "ONARIM DEVAM EDİYOR") return "st-devam";
+      if (status === "SON KONTROLDE") return "st-kontrol";
+      if (status === "TESLİM EDİLDİ") return "st-teslim";
+      return "st-devam";
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "-";
+      const parts = dateStr.split("-");
+      return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function updateInsuranceDropdown() {
+      const select = document.getElementById("insuranceFilter");
+      const current = select.value;
+      const companies = [...new Set(vehicles.map(v => v.kasko).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+      select.innerHTML = `<option value="">Tüm Sigorta / Kasko Şirketleri</option>` +
+        companies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      select.value = current;
+    }
+
+    function updateStats() {
+      const active = vehicles.filter(v => v.surec !== "TESLİM EDİLDİ").length;
+      const waiting = vehicles.filter(v => ["MODÜL ONAY BEKLİYOR", "EKSPER ONAYI BEKLİYOR", "PERT DURUMU BEKLİYOR", "PARÇALARI SİPARİŞ EDİLDİ", "ONARIM RANDEVUSU VERİLDİ"].includes(v.surec)).length;
+      const working = vehicles.filter(v => v.surec === "ONARIM DEVAM EDİYOR").length;
+      const ready = vehicles.filter(v => v.surec === "SON KONTROLDE").length;
+      const delivered = vehicles.filter(v => v.surec === "TESLİM EDİLDİ").length;
+
+      document.getElementById("statActive").textContent = active;
+      document.getElementById("statWaiting").textContent = waiting;
+      document.getElementById("statWorking").textContent = working;
+      document.getElementById("statReady").textContent = ready;
+      document.getElementById("statDelivered").textContent = delivered;
+    }
+
+    function renderTable() {
+      const search = document.getElementById("searchInput").value.toLowerCase();
+      const statusFilter = document.getElementById("statusFilter").value;
+      const insFilter = document.getElementById("insuranceFilter").value;
+
+      const filtered = vehicles.filter(v => {
+        if (statusFilter === "ALL_INC" && v.surec === "TESLİM EDİLDİ") return false;
+        if (statusFilter !== "ALL" && statusFilter !== "ALL_INC" && v.surec !== statusFilter) return false;
+        if (insFilter && v.kasko !== insFilter) return false;
+        const text = `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ''}`.toLowerCase();
+        return text.includes(search);
+      });
+
+      const tbody = document.getElementById("vehicleTableBody");
+      tbody.innerHTML = filtered.map((v, idx) => `
+        <tr>
+          <td><strong>${idx + 1}</strong></td>
+          <td><span class="plate"><span class="plate-text">${escapeHtml(v.plaka)}</span></span></td>
+          <td><strong>${escapeHtml(v.musteri)}</strong></td>
+          <td>${escapeHtml(v.kasko) || "-"}</td>
+          <td>${formatDate(v.dosyaTarih)}</td>
+          <td>${formatDate(v.onarimTarih)}</td>
+          <td>
+            <div class="status-cell">
+              <select class="status-select ${window.getStatusClass(v.surec)}" onchange="window.changeStatus('${v.firebaseKey}', this.value)">
+                ${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}
+              </select>
+              ${v.surec === "TESLİM EDİLDİ" && v.teslimTarih ? `<span class="delivery-badge">📅 ${escapeHtml(v.teslimTarih)}</span>` : ""}
+            </div>
+          </td>
+          <td>${escapeHtml(v.aciklama) || "-"}</td>
+          <td class="no-print">
+            <button type="button" class="btn-danger" onclick="window.deleteVehicle('${v.firebaseKey}')">Sil</button>
+          </td>
+        </tr>
+      `).join("");
+
+      updateStats();
+      updateInsuranceDropdown();
+    }
+
+    window.changeStatus = function(firebaseKey, newStatus) {
+      const item = vehicles.find(v => v.firebaseKey === firebaseKey);
+      if (item) {
+        item.surec = newStatus;
+        if (newStatus === "TESLİM EDİLDİ") {
+          item.teslimTarih = getTodayFormatted();
+        } else {
+          item.teslimTarih = "";
+        }
+        const itemRef = ref(db, `vehicles/${firebaseKey}`);
+        set(itemRef, {
+          id: item.id,
+          plaka: item.plaka,
+          musteri: item.musteri,
+          kasko: item.kasko,
+          dosyaTarih: item.dosyaTarih,
+          onarimTarih: item.onarimTarih,
+          surec: item.surec,
+          teslimTarih: item.teslimTarih,
+          aciklama: item.aciklama
+        });
+      }
+    }
+
+    window.deleteVehicle = function(firebaseKey) {
+      if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) {
+        const itemRef = ref(db, `vehicles/${firebaseKey}`);
+        remove(itemRef);
+      }
+    }
+
+    window.openModal = function() {
+      document.getElementById("vehicleModal").style.display = "flex";
+    }
+
+    window.closeModal = function() {
+      document.getElementById("vehicleModal").style.display = "none";
+      document.getElementById("vehicleForm").reset();
+    }
+
+    window.saveVehicle = function(e) {
+      e.preventDefault();
+      const selectedSurec = document.getElementById("f_surec").value;
+      const newItem = {
+        id: Date.now(),
+        plaka: document.getElementById("f_plaka").value.trim().toUpperCase(),
+        musteri: document.getElementById("f_musteri").value.trim().toUpperCase(),
+        kasko: document.getElementById("f_kasko").value,
+        dosyaTarih: document.getElementById("f_dosyaTarih").value,
+        onarimTarih: document.getElementById("f_onarimTarih").value,
+        surec: selectedSurec,
+        teslimTarih: selectedSurec === "TESLİM EDİLDİ" ? getTodayFormatted() : "",
+        aciklama: document.getElementById("f_aciklama").value.trim().toUpperCase()
+      };
+
+      const newRef = push(dbRef);
+      set(newRef, newItem);
+      window.closeModal();
+    }
+
+    window.exportCSV = function() {
+      const headers = ["Sıra No", "ARAÇ PLAKASI", "MÜŞTERİ ADI / UNVAN", "KASKO UNVAN", "DOSYA AÇILMA TARİHİ", "ONARIM BAŞLAMA TARİHİ", "ONARIM SÜRECİ", "TESLİM TARİHİ", "AÇIKLAMA"];
+      const rows = vehicles.map((v, i) => [
+        i + 1, v.plaka, v.musteri, v.kasko, formatDate(v.dosyaTarih), formatDate(v.onarimTarih), v.surec, v.teslimTarih || "-", v.aciklama
+      ].map(val => `"${(val || "").toString().replace(/"/g, '""')}"`).join(";"));
+
+      const csvContent = "\uFEFF" + [headers.join(";"), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `Guncel_Kaporta_Takip_${new Date().toLocaleDateString("tr-TR")}.csv`;
+      link.click();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById("currentDateText").textContent =
+        "Canlı Bulut Atölye Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      
+      document.getElementById("searchInput").addEventListener("input", renderTable);
+      document.getElementById("statusFilter").addEventListener("change", renderTable);
+      document.getElementById("insuranceFilter").addEventListener("change", renderTable);
+      document.getElementById("vehicleForm").addEventListener("submit", window.saveVehicle);
+    });
+  </script>
+
+  <style>
+    :root {
+      --bg: #f1f5f9; --surface: #ffffff; --primary: #1e293b; --accent: #2563eb; --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 20px; }
-
     .container { max-width: 1400px; margin: 0 auto; }
-
     header {
       background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-      color: #ffffff;
-      padding: 24px 28px;
-      border-radius: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
-      margin-bottom: 22px;
+      color: #ffffff; padding: 24px 28px; border-radius: 14px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2); margin-bottom: 22px;
     }
     header h1 { font-size: 1.5rem; font-weight: 700; color: #ffffff; }
     header p { color: #cbd5e1; font-size: 0.9rem; margin-top: 4px; }
     .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
     button {
-      cursor: pointer;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-weight: 600;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      cursor: pointer; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 0.875rem;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn-primary { background: #3b82f6; color: #fff; }
     .btn-primary:hover { background: #2563eb; }
@@ -57,20 +289,10 @@
     .btn-success { background: #10b981; color: #fff; }
     .btn-success:hover { background: #059669; }
     .btn-danger { background: #ef4444; color: #fff; padding: 6px 10px; font-size: 0.8rem; }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 22px;
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px; }
     .stat-card {
-      background: var(--surface);
-      padding: 18px 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-      border-left: 4px solid var(--accent);
+      background: var(--surface); padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03); border-left: 4px solid var(--accent);
     }
     .stat-card.orange { border-left-color: #f59e0b; }
     .stat-card.purple { border-left-color: #8b5cf6; }
@@ -78,96 +300,31 @@
     .stat-card.gray { border-left-color: #64748b; }
     .stat-title { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
     .stat-value { font-size: 1.8rem; font-weight: 800; margin-top: 6px; color: var(--text); }
-
     .toolbar {
-      background: var(--surface);
-      padding: 16px 20px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      margin-bottom: 18px;
+      background: var(--surface); padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border);
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px;
     }
     .toolbar input, .toolbar select {
-      padding: 10px 14px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      outline: none;
-      color: var(--text);
-      background: #fff;
+      padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none; color: var(--text); background: #fff;
     }
     .toolbar input { flex: 1; min-width: 240px; }
-
     .table-wrapper {
-      background: var(--surface);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      overflow-x: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
     }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
     thead { background: #f8fafc; border-bottom: 2px solid var(--border); }
-    th {
-      padding: 14px 16px;
-      font-weight: 700;
-      color: #334155;
-      white-space: nowrap;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-    }
+    th { padding: 14px 16px; font-weight: 700; color: #334155; white-space: nowrap; font-size: 0.8rem; text-transform: uppercase; }
     td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
     tr:hover { background: #f8fafc; }
-
     .plate {
-      display: inline-flex;
-      align-items: center;
-      border: 1.5px solid #1e293b;
-      border-radius: 5px;
-      overflow: hidden;
-      font-weight: 800;
-      font-size: 0.85rem;
-      background: #fff;
-      letter-spacing: 0.5px;
-      white-space: nowrap;
+      display: inline-flex; align-items: center; border: 1.5px solid #1e293b; border-radius: 5px; overflow: hidden;
+      font-weight: 800; font-size: 0.85rem; background: #fff; letter-spacing: 0.5px; white-space: nowrap;
     }
-    .plate::before {
-      content: "TR";
-      background: #1d4ed8;
-      color: #fff;
-      font-size: 0.6rem;
-      padding: 4px 3px;
-      margin-right: 6px;
-    }
+    .plate::before { content: "TR"; background: #1d4ed8; color: #fff; font-size: 0.6rem; padding: 4px 3px; margin-right: 6px; }
     .plate-text { padding-right: 8px; color: #0f172a; }
-
-    .status-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .status-select {
-      padding: 6px 10px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 0.78rem;
-      border: 1px solid transparent;
-      cursor: pointer;
-      outline: none;
-    }
-    .delivery-badge {
-      background: #e2e8f0;
-      color: #1e293b;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-
+    .status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .status-select { padding: 6px 10px; border-radius: 20px; font-weight: 700; font-size: 0.78rem; border: 1px solid transparent; cursor: pointer; outline: none; }
+    .delivery-badge { background: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
     .st-modul { background: #ffedd5; color: #9a3412; }
     .st-eksper { background: #fef3c7; color: #92400e; }
     .st-pert { background: #fee2e2; color: #991b1b; }
@@ -176,54 +333,20 @@
     .st-devam { background: #dbeafe; color: #1e40af; }
     .st-kontrol { background: #dcfce7; color: #166534; }
     .st-teslim { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-
     .modal-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(2px);
-      justify-content: center;
-      align-items: center;
-      padding: 16px;
-      z-index: 100;
+      display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
+      justify-content: center; align-items: center; padding: 16px; z-index: 100;
     }
-    .modal {
-      background: #fff;
-      width: 100%;
-      max-width: 620px;
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    }
+    .modal { background: #fff; width: 100%; max-width: 620px; border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
     .modal h2 { margin-bottom: 16px; font-size: 1.25rem; color: var(--text); }
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; }
     .form-group.full { grid-column: 1 / -1; }
     .form-group label { font-size: 0.82rem; font-weight: 600; color: #475569; }
     .form-group input, .form-group select, .form-group textarea {
-      padding: 9px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      color: var(--text);
+      padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; color: var(--text);
     }
-    .modal-footer {
-      margin-top: 20px;
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    @media print {
-      .header-actions, .toolbar, .no-print { display: none !important; }
-      body { background: #fff; padding: 0; }
-      .table-wrapper { box-shadow: none; border: none; }
-    }
+    .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
   </style>
 </head>
 <body>
@@ -231,12 +354,12 @@
 <div class="container">
   <header>
     <div>
-      <h1>Kaporta & Hasar Atölyesi — Güncel Araç Takip</h1>
+      <h1>Kaporta & Hasar Atölyesi — Canlı Bulut Takip</h1>
       <p id="currentDateText">Atölye Durum Raporu</p>
     </div>
     <div class="header-actions">
-      <button type="button" class="btn-primary" onclick="openModal()">+ Yeni Araç Ekle</button>
-      <button type="button" class="btn-success" onclick="exportCSV()">Excel (CSV) İndir</button>
+      <button type="button" class="btn-primary" onclick="window.openModal()">+ Yeni Araç Ekle</button>
+      <button type="button" class="btn-success" onclick="window.exportCSV()">Excel (CSV) İndir</button>
       <button type="button" class="btn-light" onclick="window.print()">Yazdır / PDF Al</button>
     </div>
   </header>
@@ -265,8 +388,8 @@
   </div>
 
   <div class="toolbar">
-    <input type="text" id="searchInput" placeholder="Plaka, müşteri adı, sigorta veya açıklama ara..." oninput="renderTable()">
-    <select id="statusFilter" onchange="renderTable()">
+    <input type="text" id="searchInput" placeholder="Plaka, müşteri adı, sigorta veya açıklama ara...">
+    <select id="statusFilter">
       <option value="ALL">Tüm Süreçler (Aktifler)</option>
       <option value="ALL_INC">Tümü (Teslim Edilenler Dahil)</option>
       <option value="MODÜL ONAY BEKLİYOR">MODÜL ONAY BEKLİYOR</option>
@@ -278,7 +401,7 @@
       <option value="SON KONTROLDE">SON KONTROLDE</option>
       <option value="TESLİM EDİLDİ">TESLİM EDİLDİ</option>
     </select>
-    <select id="insuranceFilter" onchange="renderTable()">
+    <select id="insuranceFilter">
       <option value="">Tüm Sigorta / Kasko Şirketleri</option>
     </select>
   </div>
@@ -306,7 +429,7 @@
 <div class="modal-backdrop" id="vehicleModal">
   <div class="modal">
     <h2>Yeni Araç Kaydı Ekle</h2>
-    <form id="vehicleForm" onsubmit="saveVehicle(event)">
+    <form id="vehicleForm">
       <div class="form-grid">
         <div class="form-group">
           <label>Araç Plakası *</label>
@@ -372,243 +495,12 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-danger" style="background:#94a3b8" onclick="closeModal()">İptal</button>
+        <button type="button" class="btn-danger" style="background:#94a3b8" onclick="window.closeModal()">İptal</button>
         <button type="submit" class="btn-primary">Kaydet</button>
       </div>
     </form>
   </div>
 </div>
 
-<script>
-  const STATUS_LIST = [
-    "MODÜL ONAY BEKLİYOR",
-    "EKSPER ONAYI BEKLİYOR",
-    "PERT DURUMU BEKLİYOR",
-    "PARÇALARI SİPARİŞ EDİLDİ",
-    "ONARIM RANDEVUSU VERİLDİ",
-    "ONARIM DEVAM EDİYOR",
-    "SON KONTROLDE",
-    "TESLİM EDİLDİ"
-  ];
-
-  const defaultVehicles = [
-    { id: 1, plaka: "34HVK191", musteri: "EFRAİL AKSÖZ", kasko: "GARANTİ", dosyaTarih: "2026-11-17", onarimTarih: "2026-11-17", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "GARANTİDEN HOPARLÖR VE CAM AÇMA DÜĞMESİ DEĞİŞTİ" },
-    { id: 2, plaka: "41ALV593", musteri: "STE PROJE", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-10-31", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
-    { id: 3, plaka: "41AVM820", musteri: "NECGÜL TURİZM", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-05", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
-    { id: 4, plaka: "34MYG759", musteri: "TEDİ DİSCOUNT", kasko: "HDİ SİGORTA", dosyaTarih: "2026-11-07", onarimTarih: "2026-11-11", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "TOPLANMA SÜRECİNDE TAHMİNİ TESLİM BU HAFTA İÇİ" },
-    { id: 5, plaka: "34HZR058", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE KATILIM SİGORTA", dosyaTarih: "2026-10-15", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "ANAHTAR KAYBI" },
-    { id: 6, plaka: "34DZF334", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ YAN HASARLI ORTALAMA TESLİM TARİHİ: BU HAFTA İÇİ" },
-    { id: 7, plaka: "34DAS608", musteri: "KNK GEMİ", kasko: "BEREKET SİGORTA", dosyaTarih: "2026-10-16", onarimTarih: "", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "" },
-    { id: 8, plaka: "34BDB775", musteri: "ONUR SÖNMEZ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "2026-11-14", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
-    { id: 9, plaka: "34CIG410", musteri: "HASAN HÜSEYİN ÇETİN", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-04", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA BEKLİYOR" },
-    { id: 10, plaka: "34EFE749", musteri: "EFE TUR", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 11, plaka: "34FND197", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-06", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 12, plaka: "34HZR088", musteri: "İBRAHİM AKKUŞ", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
-    { id: 13, plaka: "34HZR055", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 14, plaka: "34EKA037", musteri: "ERKAN KAHRAMAN", kasko: "ACNTÜRK SİGORTA", dosyaTarih: "2026-11-12", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
-    { id: 15, plaka: "34DPY796", musteri: "ÖMER ÇELİK", kasko: "DOĞA SİGORTA", dosyaTarih: "2026-10-07", onarimTarih: "", surec: "PERT DURUMU BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 16, plaka: "34GKH978", musteri: "GÖKHAN", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 17, plaka: "34FND148", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 18, plaka: "34SD1974", musteri: "SERDAR", kasko: "RAY SİGORTA", dosyaTarih: "2026-11-02", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 19, plaka: "34YUN260", musteri: "YUNUS", kasko: "ZURİCH SİGORTA", dosyaTarih: "2026-10-28", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 20, plaka: "34VUR775", musteri: "VURAL", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-10-27", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 21, plaka: "34HZR081", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 22, plaka: "34DZF342", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 23, plaka: "34DZF338", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 24, plaka: "34KUT259", musteri: "KUTLU", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-    { id: 25, plaka: "34KP2161", musteri: "İSA ÇANKAYA", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
-    { id: 26, plaka: "34PER268", musteri: "FAHRETTİN AKBABA", kasko: "UNİCO SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "2026-11-07", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ KISIM HASARLI ORTALAMA TESLİM TARİHİ : BU HAFTA İÇİ" }
-  ];
-
-  let vehicles = [];
-  try {
-    const saved = localStorage.getItem("kaporta_araclar_v6");
-    vehicles = saved ? JSON.parse(saved) : defaultVehicles;
-  } catch (e) {
-    vehicles = defaultVehicles;
-  }
-
-  function saveToStorage() {
-    try {
-      localStorage.setItem("kaporta_araclar_v6", JSON.stringify(vehicles));
-    } catch (e) {}
-  }
-
-  function getTodayFormatted() {
-    const d = new Date();
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}.${month}.${year}`;
-  }
-
-  function getStatusClass(status) {
-    if (status === "MODÜL ONAY BEKLİYOR") return "st-modul";
-    if (status === "EKSPER ONAYI BEKLİYOR") return "st-eksper";
-    if (status === "PERT DURUMU BEKLİYOR") return "st-pert";
-    if (status === "PARÇALARI SİPARİŞ EDİLDİ") return "st-parca";
-    if (status === "ONARIM RANDEVUSU VERİLDİ") return "st-randevu";
-    if (status === "ONARIM DEVAM EDİYOR") return "st-devam";
-    if (status === "SON KONTROLDE") return "st-kontrol";
-    if (status === "TESLİM EDİLDİ") return "st-teslim";
-    return "st-devam";
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return "-";
-    const parts = dateStr.split("-");
-    return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
-  }
-
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text.toString()
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function updateInsuranceDropdown() {
-    const select = document.getElementById("insuranceFilter");
-    const current = select.value;
-    const companies = [...new Set(vehicles.map(v => v.kasko).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
-    select.innerHTML = `<option value="">Tüm Sigorta / Kasko Şirketleri</option>` +
-      companies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-    select.value = current;
-  }
-
-  function updateStats() {
-    const active = vehicles.filter(v => v.surec !== "TESLİM EDİLDİ").length;
-    const waiting = vehicles.filter(v => [
-      "MODÜL ONAY BEKLİYOR",
-      "EKSPER ONAYI BEKLİYOR",
-      "PERT DURUMU BEKLİYOR",
-      "PARÇALARI SİPARİŞ EDİLDİ",
-      "ONARIM RANDEVUSU VERİLDİ"
-    ].includes(v.surec)).length;
-    const working = vehicles.filter(v => v.surec === "ONARIM DEVAM EDİYOR").length;
-    const ready = vehicles.filter(v => v.surec === "SON KONTROLDE").length;
-    const delivered = vehicles.filter(v => v.surec === "TESLİM EDİLDİ").length;
-
-    document.getElementById("statActive").textContent = active;
-    document.getElementById("statWaiting").textContent = waiting;
-    document.getElementById("statWorking").textContent = working;
-    document.getElementById("statReady").textContent = ready;
-    document.getElementById("statDelivered").textContent = delivered;
-  }
-
-  function renderTable() {
-    const search = document.getElementById("searchInput").value.toLowerCase();
-    const statusFilter = document.getElementById("statusFilter").value;
-    const insFilter = document.getElementById("insuranceFilter").value;
-
-    const filtered = vehicles.filter(v => {
-      if (statusFilter === "ALL_INC" && v.surec === "TESLİM EDİLDİ") return false;
-      if (statusFilter !== "ALL" && statusFilter !== "ALL_INC" && v.surec !== statusFilter) return false;
-      if (insFilter && v.kasko !== insFilter) return false;
-
-      const text = `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ''}`.toLowerCase();
-      return text.includes(search);
-    });
-
-    const tbody = document.getElementById("vehicleTableBody");
-    tbody.innerHTML = filtered.map((v, idx) => `
-      <tr>
-        <td><strong>${idx + 1}</strong></td>
-        <td><span class="plate"><span class="plate-text">${escapeHtml(v.plaka)}</span></span></td>
-        <td><strong>${escapeHtml(v.musteri)}</strong></td>
-        <td>${escapeHtml(v.kasko) || "-"}</td>
-        <td>${formatDate(v.dosyaTarih)}</td>
-        <td>${formatDate(v.onarimTarih)}</td>
-        <td>
-          <div class="status-cell">
-            <select class="status-select ${getStatusClass(v.surec)}" onchange="changeStatus(${v.id}, this.value)">
-              ${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}
-            </select>
-            ${v.surec === "TESLİM EDİLDİ" && v.teslimTarih ? `<span class="delivery-badge">📅 ${escapeHtml(v.teslimTarih)}</span>` : ""}
-          </div>
-        </td>
-        <td>${escapeHtml(v.aciklama) || "-"}</td>
-        <td class="no-print">
-          <button type="button" class="btn-danger" onclick="deleteVehicle(${v.id})">Sil</button>
-        </td>
-      </tr>
-    `).join("");
-
-    updateStats();
-    updateInsuranceDropdown();
-  }
-
-  function changeStatus(id, newStatus) {
-    const item = vehicles.find(v => v.id === id);
-    if (item) {
-      item.surec = newStatus;
-      if (newStatus === "TESLİM EDİLDİ") {
-        item.teslimTarih = getTodayFormatted();
-      } else {
-        item.teslimTarih = "";
-      }
-      saveToStorage();
-      renderTable();
-    }
-  }
-
-  function deleteVehicle(id) {
-    if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) {
-      vehicles = vehicles.filter(v => v.id !== id);
-      saveToStorage();
-      renderTable();
-    }
-  }
-
-  function openModal() {
-    document.getElementById("vehicleModal").style.display = "flex";
-  }
-
-  function closeModal() {
-    document.getElementById("vehicleModal").style.display = "none";
-    document.getElementById("vehicleForm").reset();
-  }
-
-  function saveVehicle(e) {
-    e.preventDefault();
-    const selectedSurec = document.getElementById("f_surec").value;
-    const newItem = {
-      id: Date.now(),
-      plaka: document.getElementById("f_plaka").value.trim().toUpperCase(),
-      musteri: document.getElementById("f_musteri").value.trim().toUpperCase(),
-      kasko: document.getElementById("f_kasko").value,
-      dosyaTarih: document.getElementById("f_dosyaTarih").value,
-      onarimTarih: document.getElementById("f_onarimTarih").value,
-      surec: selectedSurec,
-      teslimTarih: selectedSurec === "TESLİM EDİLDİ" ? getTodayFormatted() : "",
-      aciklama: document.getElementById("f_aciklama").value.trim().toUpperCase()
-    };
-    vehicles.unshift(newItem);
-    saveToStorage();
-    closeModal();
-    renderTable();
-  }
-
-  function exportCSV() {
-    const headers = ["Sıra No", "ARAÇ PLAKASI", "MÜŞTERİ ADI / UNVAN", "KASKO UNVAN", "DOSYA AÇILMA TARİHİ", "ONARIM BAŞLAMA TARİHİ", "ONARIM SÜRECİ", "TESLİM TARİHİ", "AÇIKLAMA"];
-    const rows = vehicles.map((v, i) => [
-      i + 1, v.plaka, v.musteri, v.kasko, formatDate(v.dosyaTarih), formatDate(v.onarimTarih), v.surec, v.teslimTarih || "-", v.aciklama
-    ].map(val => `"${(val || "").toString().replace(/"/g, '""')}"`).join(";"));
-
-    const csvContent = "\uFEFF" + [headers.join(";"), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Guncel_Kaporta_Takip_${new Date().toLocaleDateString("tr-TR")}.csv`;
-    link.click();
-  }
-
-  document.getElementById("currentDateText").textContent =
-    "Güncel Atölye Durum Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  renderTable();
-</script>
 </body>
 </html>
