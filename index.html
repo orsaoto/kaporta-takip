@@ -127,12 +127,36 @@ body.admin .viewer-only{display:none!important}
 .btn-danger{background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;padding:6px 11px;font-size:.78rem;border-radius:8px}
 .btn-cancel{background:#94a3b8;color:#fff}
 .btn-small{background:#e0e7ff;color:#1d4ed8;border:1px solid #c7d2fe;padding:5px 10px;font-size:.75rem;margin-top:6px}
+.btn-icon-edit{
+  background:#f1f5f9;
+  color:#334155;
+  border:1px solid #cbd5e1;
+  padding:4px 7px;
+  font-size:.78rem;
+  border-radius:7px;
+  line-height:1;
+  flex-shrink:0;
+}
+.btn-icon-edit:hover{background:#e0e7ff;color:#1d4ed8;border-color:#93c5fd}
 .btn-start-repair{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;padding:5px 10px;font-size:.74rem;border-radius:8px;margin-top:0}
 .btn-wa{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:4px 9px;font-size:.74rem}
-.quick-actions{gap:4px;flex-wrap:wrap;margin-top:4px;width:100%}
-.btn-quick{background:#f8fafc;color:#334155;border:1px solid #cbd5e1;padding:3px 7px;font-size:.69rem;border-radius:7px;font-weight:700}
-.btn-quick:hover:not(:disabled){background:#e0e7ff;color:#1d4ed8;border-color:#93c5fd}
-.btn-quick.is-current{background:#1e293b;color:#fff;border-color:#1e293b;opacity:1}
+.btn-next-step{
+  background:#eff6ff;
+  color:#1d4ed8;
+  border:1px solid #93c5fd;
+  padding:5px 10px;
+  font-size:.73rem;
+  border-radius:8px;
+  font-weight:800;
+  white-space:nowrap;
+}
+.btn-next-step:hover{background:#dbeafe;border-color:#60a5fa}
+.btn-next-step.is-deliver{
+  background:#dcfce7;
+  color:#166534;
+  border-color:#86efac;
+}
+.btn-next-step.is-deliver:hover{background:#bbf7d0}
 
 /* ---------- Durum Kutucukları ---------- */
 .stage-grid{
@@ -194,8 +218,9 @@ body.admin .viewer-only{display:none!important}
 
 .dup-alert{display:none;margin-top:6px;padding:8px 11px;border-radius:9px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:.78rem;font-weight:700;line-height:1.35}
 .dup-alert.visible{display:block}
-.desc-text{font-size:.86rem;line-height:1.35;word-break:break-word}
-.notes-cell{min-width:230px;max-width:330px}
+.desc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.desc-text{font-size:.85rem;line-height:1.35;word-break:break-word;flex:1}
+.notes-cell{min-width:210px;max-width:320px}
 
 .toolbar{background:rgba(255,255,255,.95);padding:13px 16px;border-radius:14px;border:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px;box-shadow:var(--sh)}
 .toolbar input,.toolbar select{padding:9px 13px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:.86rem;font-weight:600;outline:none;background:#fff}
@@ -211,22 +236,24 @@ body.admin .viewer-only{display:none!important}
 table{width:100%;border-collapse:collapse;text-align:left;font-size:.88rem}
 thead{background:#f1f5f9;border-bottom:2px solid var(--border)}
 th{padding:13px 14px;font-weight:800;color:#1e293b;white-space:nowrap;font-size:.74rem;text-transform:uppercase}
-td{padding:12px 14px;border-bottom:1px solid #eef2f6;vertical-align:middle}
-tbody tr:hover{background:#f8faff}
+td{padding:12px 14px;border-bottom:1px solid rgba(148,163,184,.24);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{transition:background-color .16s ease, box-shadow .16s ease}
+tbody tr:hover{background:#f3f7ff;box-shadow:inset 3px 0 0 #3b82f6}
 .plate{display:inline-flex;align-items:center;border:1.5px solid #0f172a;border-radius:6px;overflow:hidden;font-weight:900;font-size:.84rem;background:#fff;white-space:nowrap}
 .plate::before{content:"TR";background:#2563eb;color:#fff;font-size:.58rem;font-weight:800;padding:5px 4px;margin-right:7px}
 .plate-text{padding-right:9px}
-.status-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.status-select,.status-badge{padding:7px 12px;border-radius:999px;font-weight:800;font-size:.75rem;border:1.5px solid transparent;outline:none;white-space:nowrap}
+.status-cell{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.status-select,.status-badge{padding:6px 11px;border-radius:999px;font-weight:800;font-size:.74rem;border:1.5px solid transparent;outline:none;white-space:nowrap}
 .status-select{cursor:pointer}
-.delivery-badge-btn{background:#e2e8f0;color:#0f172a;font-size:.74rem;font-weight:800;padding:5px 9px;border-radius:8px;border:1px solid #cbd5e1}
-.delivery-text{font-size:.76rem;font-weight:800;color:#334155}
+.delivery-badge-btn{background:#e2e8f0;color:#0f172a;font-size:.73rem;font-weight:800;padding:5px 9px;border-radius:8px;border:1px solid #cbd5e1;white-space:nowrap}
+.delivery-text{font-size:.76rem;font-weight:800;color:#334155;white-space:nowrap}
 .date-input{padding:4px 8px;border:1.5px solid #2563eb;border-radius:8px;font-size:.76rem;font-weight:700;outline:none}
 .mini-x{background:#e2e8f0;color:#334155;padding:4px 8px;font-size:.75rem;border-radius:8px}
 .days{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:800;font-size:.78rem;background:#f1f5f9;color:#334155;white-space:nowrap}
 .days.late{background:#fee2e2;color:#b91c1c}
 .overdue{display:block;margin-top:4px;font-size:.72rem;font-weight:800;color:#b91c1c}
-.phone-line{margin-top:5px;font-size:.78rem;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.phone-line{margin-top:4px;font-size:.78rem;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .st-modul{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
 .st-eksper{background:#fef3c7;color:#92400e;border-color:#fde68a}
 .st-pert{background:#ffe4e6;color:#9f1239;border-color:#fecdd3}
@@ -246,7 +273,7 @@ tbody tr:hover{background:#f8faff}
 .modal-footer{margin-top:22px;display:flex;justify-content:flex-end;gap:10px}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
 @media print{
-.header-actions,.workspace-bar,.toolbar,.btn-small,.btn-wa,.btn-start-repair,.btn-quick,.quick-actions,.date-input,.mini-x,
+.header-actions,.workspace-bar,.toolbar,.btn-small,.btn-icon-edit,.btn-wa,.btn-start-repair,.btn-next-step,.date-input,.mini-x,
 .admin-only,body.admin .admin-only,body.admin td.admin-only,body.admin th.admin-only,body.admin div.admin-only{display:none!important}
 body{background:#fff;padding:0}
 .topbar{border-radius:12px;margin-bottom:14px}
@@ -274,12 +301,15 @@ const auth = getAuth(app);
 
 const LATE_DAYS = 15;
 const STATUS_LIST = ["MODÜL ONAY BEKLİYOR","EKSPER ONAYI BEKLİYOR","PERT DURUMU BEKLİYOR","PARÇALARI SİPARİŞ EDİLDİ","ONARIM RANDEVUSU VERİLDİ","ONARIM DEVAM EDİYOR","SON KONTROLDE","TESLİM EDİLDİ"];
-const QUICK_STATUSES = [
-  { label: "Parça Sipariş", status: "PARÇALARI SİPARİŞ EDİLDİ" },
-  { label: "Onarımda", status: "ONARIM DEVAM EDİYOR" },
-  { label: "Son Kontrolde", status: "SON KONTROLDE" },
-  { label: "Teslim Edildi", status: "TESLİM EDİLDİ" }
-];
+const NEXT_STEP_MAP = {
+  "MODÜL ONAY BEKLİYOR": { label: "➔ Eksper Onayı", next: "EKSPER ONAYI BEKLİYOR" },
+  "EKSPER ONAYI BEKLİYOR": { label: "➔ Parça Sipariş", next: "PARÇALARI SİPARİŞ EDİLDİ" },
+  "PERT DURUMU BEKLİYOR": { label: "➔ Parça Sipariş", next: "PARÇALARI SİPARİŞ EDİLDİ" },
+  "PARÇALARI SİPARİŞ EDİLDİ": { label: "➔ Onarıma Al", next: "ONARIM DEVAM EDİYOR" },
+  "ONARIM RANDEVUSU VERİLDİ": { label: "➔ Onarıma Al", next: "ONARIM DEVAM EDİYOR" },
+  "ONARIM DEVAM EDİYOR": { label: "➔ Son Kontrol", next: "SON KONTROLDE" },
+  "SON KONTROLDE": { label: "✓ Teslim Et", next: "TESLİM EDİLDİ", deliver: true }
+};
 const APPROVAL = ["MODÜL ONAY BEKLİYOR","EKSPER ONAYI BEKLİYOR"];
 const REPAIR = ["ONARIM RANDEVUSU VERİLDİ","ONARIM DEVAM EDİYOR","SON KONTROLDE"];
 const MONTHS_TR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
@@ -609,14 +639,15 @@ window.checkDuplicatePlateUI = function () {
 
 /* ---------- Tablolar ---------- */
 function notesCell(v, col) {
-  return `<div class="desc-text">${esc(v.aciklama) || "-"}</div>
-    <button type="button" class="btn-small admin-only" onclick="window.openDescModal('${v.firebaseKey}','${col}')">✏️ Açıklamayı Düzenle</button>`;
+  return `<div class="desc-row">
+    <div class="desc-text">${esc(v.aciklama) || "-"}</div>
+    <button type="button" class="btn-icon-edit admin-only" title="Açıklamayı Düzenle" aria-label="Açıklamayı Düzenle" onclick="window.openDescModal('${v.firebaseKey}','${col}')">✏️</button>
+  </div>`;
 }
-function quickButtonsHtml(v) {
-  return `<div class="quick-actions admin-only">${QUICK_STATUSES.map(q => {
-    const active = v.surec === q.status;
-    return `<button type="button" class="btn-quick ${active ? "is-current" : ""}" ${active ? "disabled" : ""} onclick="window.changeStatus('${v.firebaseKey}','${q.status}')">${active ? "✓ " : ""}${esc(q.label)}</button>`;
-  }).join("")}</div>`;
+function nextStepButtonHtml(v) {
+  const step = NEXT_STEP_MAP[v.surec];
+  if (!step) return "";
+  return `<button type="button" class="btn-next-step ${step.deliver ? "is-deliver" : ""} admin-only" title="Sonraki aşamaya geçir: ${esc(step.next)}" onclick="window.changeStatus('${v.firebaseKey}','${step.next}')">${esc(step.label)}</button>`;
 }
 function renderCurrentTable() {
   const search = $("searchInput").value.trim().toLowerCase();
@@ -644,8 +675,8 @@ function renderCurrentTable() {
         ${isAdmin
           ? `<select class="status-select ${STATUS_CLASS[v.surec] || "st-devam"}" onchange="window.changeStatus('${v.firebaseKey}', this.value)">${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}</select>`
           : `<span class="status-badge ${STATUS_CLASS[v.surec] || "st-devam"}">${esc(v.surec)}</span>`}
-        ${deliveryCell(v, "vehicles")}
-        ${quickButtonsHtml(v)}</div></td>
+        ${nextStepButtonHtml(v)}
+        ${deliveryCell(v, "vehicles")}</div></td>
       <td class="notes-cell">${notesCell(v, "vehicles")}</td>
       <td class="admin-only"><button type="button" class="btn-danger" onclick="window.deleteVehicle('${v.firebaseKey}','vehicles')">Sil</button></td>
     </tr>`).join("") : `<tr><td colspan="11"><div class="empty-state">Filtre kriterlerine uygun kayıt bulunamadı.</div></td></tr>`;
