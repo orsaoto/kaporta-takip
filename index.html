@@ -33,11 +33,10 @@ body.admin .viewer-only{display:none!important}
 .btn-danger{background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;padding:6px 11px;font-size:.78rem;border-radius:8px}
 .btn-cancel{background:#94a3b8;color:#fff}
 .btn-small{background:#e0e7ff;color:#1d4ed8;border:1px solid #c7d2fe;padding:5px 10px;font-size:.75rem;margin-top:6px}
+.btn-start-repair{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;padding:5px 10px;font-size:.74rem;border-radius:8px;margin-top:0}
 .btn-wa{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:4px 9px;font-size:.74rem}
-.desc-text{font-size:.86rem;line-height:1.35}
+.desc-text{font-size:.86rem;line-height:1.35;word-break:break-word}
 .notes-cell{min-width:230px;max-width:330px}
-.comment-box{margin-top:7px;padding:7px 10px;background:#eff6ff;border-left:3.5px solid #2563eb;border-radius:8px;font-size:.8rem;word-break:break-word}
-.comment-label{font-weight:800;color:#1d4ed8}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:16px;margin-bottom:20px}
 .stat-card{background:var(--surface);padding:18px 20px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh);cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
 .stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--c,#2563eb)}
@@ -103,7 +102,7 @@ tbody tr:hover{background:#f8faff}
 .hist-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef2f6;font-size:.86rem;align-items:center}
 .hist-row small{color:var(--muted);display:block;margin-top:2px}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
-@media print{.header-actions,.nav-tabs,.toolbar,.admin-only,.btn-small,.date-input,.mini-x{display:none!important}body{background:#fff;padding:0}.table-wrapper,.month-group{box-shadow:none;border:1px solid #cbd5e1}}
+@media print{.header-actions,.nav-tabs,.toolbar,.admin-only,.btn-small,.btn-start-repair,.date-input,.mini-x{display:none!important}body{background:#fff;padding:0}.table-wrapper,.month-group{box-shadow:none;border:1px solid #cbd5e1}}
 </style>
 
 <script type="module">
@@ -134,7 +133,7 @@ const STATUS_CLASS = {"MODÜL ONAY BEKLİYOR":"st-modul","EKSPER ONAYI BEKLİYOR
 
 let vehicles = [], archivedVehicles = [], lastResetMonth = null;
 let vehiclesLoaded = false, metaLoaded = false, isAdmin = false;
-let activeTab = "current", editingCommentKey = null, editingDeliveryKey = null, rolloverBusy = false;
+let activeTab = "current", editingDescKey = null, editingDeliveryKey = null, rolloverBusy = false;
 
 const vehiclesRef = ref(db, "vehicles");
 const metaRef = ref(db, "meta/lastResetMonth");
@@ -158,7 +157,7 @@ function clean(v) {
     id: v.id ?? Date.now(), plaka: v.plaka || "", musteri: v.musteri || "", telefon: v.telefon || "",
     kasko: v.kasko || "", dosyaTarih: v.dosyaTarih || "", onarimTarih: v.onarimTarih || "",
     tahminiTeslim: v.tahminiTeslim || "", surec: v.surec || "", teslimTarih: v.teslimTarih || "",
-    aciklama: v.aciklama || "", yorum: v.yorum || "", gecmis: Array.isArray(v.gecmis) ? v.gecmis : []
+    aciklama: v.aciklama || "", gecmis: Array.isArray(v.gecmis) ? v.gecmis : []
   };
 }
 
@@ -386,8 +385,7 @@ window.closeHistory = () => { $("historyModal").style.display = "none"; };
 /* ---------- Tablolar ---------- */
 function notesCell(v, col) {
   return `<div class="desc-text">${esc(v.aciklama) || "-"}</div>
-    ${v.yorum ? `<div class="comment-box"><span class="comment-label">💬 Yorum:</span> ${esc(v.yorum)}</div>` : ""}
-    <button type="button" class="btn-small admin-only" onclick="window.openCommentModal('${v.firebaseKey}','${col}')">${v.yorum ? "✏️ Yorumu Düzenle" : "💬 Yorum Ekle"}</button>`;
+    <button type="button" class="btn-small admin-only" onclick="window.openDescModal('${v.firebaseKey}','${col}')">✏️ Açıklamayı Düzenle</button>`;
 }
 function renderCurrentTable() {
   const search = $("searchInput").value.toLowerCase();
@@ -395,7 +393,7 @@ function renderCurrentTable() {
   const rows = vehicles.filter(v => {
     if (!matchesStatus(v, sf)) return false;
     if (ins && v.kasko !== ins) return false;
-    return `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.yorum || ""} ${v.teslimTarih || ""}${isAdmin ? " " + (v.telefon || "") : ""}`.toLowerCase().includes(search);
+    return `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ""}${isAdmin ? " " + (v.telefon || "") : ""}`.toLowerCase().includes(search);
   });
   $("vehicleTableBody").innerHTML = rows.length ? rows.map((v, i) => `
     <tr>
@@ -413,6 +411,7 @@ function renderCurrentTable() {
         ${isAdmin
           ? `<select class="status-select ${STATUS_CLASS[v.surec] || "st-devam"}" onchange="window.changeStatus('${v.firebaseKey}', this.value)">${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}</select>`
           : `<span class="status-badge ${STATUS_CLASS[v.surec] || "st-devam"}">${esc(v.surec)}</span>`}
+        ${v.surec !== "ONARIM DEVAM EDİYOR" ? `<button type="button" class="btn-start-repair admin-only" onclick="window.startRepair('${v.firebaseKey}')">🔧 Onarıma Başla</button>` : ""}
         ${deliveryCell(v, "vehicles")}
         <button type="button" class="btn-small" style="margin-top:0" title="Durum geçmişi" onclick="window.openHistory('${v.firebaseKey}','vehicles')">🕘</button></div></td>
       <td class="notes-cell">${notesCell(v, "vehicles")}</td>
@@ -431,7 +430,7 @@ function renderArchive() {
     <div class="month-group">
       <div class="month-header"><span class="month-title">🗓️ ${esc(ymLabel(ym))}</span><span class="month-pill">${g[ym].length} Teslim Edilen Araç</span></div>
       <div class="table-wrapper"><table>
-        <thead><tr><th>Sıra</th><th>Araç Plakası</th><th>Müşteri</th><th>Kasko / Sigorta / Tür</th><th>Dosya Açılış</th><th>Serviste</th><th>Teslim Tarihi</th><th>Açıklama / Yorum</th><th class="admin-only">İşlem</th></tr></thead>
+        <thead><tr><th>Sıra</th><th>Araç Plakası</th><th>Müşteri</th><th>Kasko / Sigorta / Tür</th><th>Dosya Açılış</th><th>Serviste</th><th>Teslim Tarihi</th><th>Açıklama</th><th class="admin-only">İşlem</th></tr></thead>
         <tbody>${g[ym].map((v, i) => `
           <tr>
             <td><strong>${i + 1}</strong></td>
@@ -450,6 +449,20 @@ function renderArchive() {
 function renderAll() { updateStats(); updateInsuranceDropdown(); renderCurrentTable(); renderArchive(); syncActiveCard(); }
 
 /* ---------- Düzenleme işlemleri ---------- */
+window.startRepair = function (key) {
+  const item = vehicles.find(v => v.firebaseKey === key);
+  if (!item) return;
+  const status = "ONARIM DEVAM EDİYOR";
+  const updates = {
+    surec: status,
+    onarimTarih: todayIso(),
+    teslimTarih: ""
+  };
+  if (item.surec !== status) {
+    updates.gecmis = [...(Array.isArray(item.gecmis) ? item.gecmis : []), { s: status, t: Date.now() }];
+  }
+  update(ref(db, `vehicles/${key}`), updates);
+};
 window.changeStatus = function (key, status) {
   const item = vehicles.find(v => v.firebaseKey === key);
   if (!item || item.surec === status) return;
@@ -459,22 +472,22 @@ window.changeStatus = function (key, status) {
     gecmis: [...(Array.isArray(item.gecmis) ? item.gecmis : []), { s: status, t: Date.now() }]
   });
 };
-window.openCommentModal = function (key, col) {
+window.openDescModal = function (key, col) {
   const item = (col === "archived_vehicles" ? archivedVehicles : vehicles).find(v => v.firebaseKey === key);
   if (!item) return;
-  editingCommentKey = { key, col };
-  $("commentModalTitle").textContent = `${item.plaka} — Araç Yorumu`;
-  $("f_yorum").value = item.yorum || "";
-  $("commentModal").style.display = "flex";
-  $("f_yorum").focus();
+  editingDescKey = { key, col };
+  $("descModalTitle").textContent = `${item.plaka} — Açıklamayı Düzenle`;
+  $("f_aciklama_duzenle").value = item.aciklama || "";
+  $("descModal").style.display = "flex";
+  $("f_aciklama_duzenle").focus();
 };
-window.closeCommentModal = function () { editingCommentKey = null; $("commentModal").style.display = "none"; $("commentForm").reset(); };
-window.saveComment = function (e) {
+window.closeDescModal = function () { editingDescKey = null; $("descModal").style.display = "none"; $("descForm").reset(); };
+window.saveDesc = function (e) {
   e.preventDefault();
-  if (!editingCommentKey) return;
-  const { key, col } = editingCommentKey;
-  update(ref(db, `${col}/${key}`), { yorum: $("f_yorum").value.trim().toUpperCase() });
-  window.closeCommentModal();
+  if (!editingDescKey) return;
+  const { key, col } = editingDescKey;
+  update(ref(db, `${col}/${key}`), { aciklama: $("f_aciklama_duzenle").value.trim().toUpperCase() });
+  window.closeDescModal();
 };
 window.deleteVehicle = function (key, col) {
   if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) remove(ref(db, `${col}/${key}`));
@@ -496,15 +509,14 @@ window.saveVehicle = function (e) {
     surec,
     teslimTarih: surec === "TESLİM EDİLDİ" ? todayTr() : "",
     aciklama: $("f_aciklama").value.trim().toUpperCase(),
-    yorum: $("f_yorum_yeni").value.trim().toUpperCase(),
     gecmis: [{ s: surec, t: Date.now() }]
   }));
   window.closeModal();
 };
 
 window.exportCSV = function () {
-  const headers = ["Dönem","Sıra No","ARAÇ PLAKASI","MÜŞTERİ ADI / UNVAN","KASKO UNVAN","DOSYA AÇILMA TARİHİ","ONARIM BAŞLAMA TARİHİ","TAHMİNİ TESLİM","ONARIM SÜRECİ","TESLİM TARİHİ","AÇIKLAMA","YORUM"];
-  const mk = (p, v) => [p, 0, v.plaka, v.musteri, v.kasko, fmt(v.dosyaTarih), fmt(v.onarimTarih), fmt(v.tahminiTeslim), v.surec, v.teslimTarih || "-", v.aciklama, v.yorum || ""];
+  const headers = ["Dönem","Sıra No","ARAÇ PLAKASI","MÜŞTERİ ADI / UNVAN","KASKO UNVAN","DOSYA AÇILMA TARİHİ","ONARIM BAŞLAMA TARİHİ","TAHMİNİ TESLİM","ONARIM SÜRECİ","TESLİM TARİHİ","AÇIKLAMA"];
+  const mk = (p, v) => [p, 0, v.plaka, v.musteri, v.kasko, fmt(v.dosyaTarih), fmt(v.onarimTarih), fmt(v.tahminiTeslim), v.surec, v.teslimTarih || "-", v.aciklama];
   const all = [
     ...vehicles.map(v => mk(`Aktif (${ymLabel(curYM())})`, v)),
     ...archivedVehicles.map(v => mk(`Geçmiş Ay (${ymLabel(v.archiveMonth || ymFromDelivery(v.teslimTarih))})`, v))
@@ -523,7 +535,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("statusFilter").addEventListener("change", renderAll);
   $("insuranceFilter").addEventListener("change", renderAll);
   $("vehicleForm").addEventListener("submit", window.saveVehicle);
-  $("commentForm").addEventListener("submit", window.saveComment);
+  $("descForm").addEventListener("submit", window.saveDesc);
   $("loginForm").addEventListener("submit", window.doLogin);
 });
 </script>
@@ -583,7 +595,7 @@ window.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <div class="toolbar">
-      <input type="text" id="searchInput" placeholder="Plaka, müşteri, kasko, açıklama veya yorum ara...">
+      <input type="text" id="searchInput" placeholder="Plaka, müşteri, kasko veya açıklama ara...">
       <select id="statusFilter">
         <option value="ALL">Aktif Araçlar (Teslim Hariç)</option>
         <option value="ALL_INC">Tüm Kayıtlar (Teslim Dahil)</option>
@@ -618,7 +630,7 @@ window.addEventListener("DOMContentLoaded", () => {
             <th>Onarım Başlama</th>
             <th>Tahmini Teslim</th>
             <th>Onarım Süreci</th>
-            <th>Açıklama / Yorum</th>
+            <th>Açıklama</th>
             <th class="admin-only">İşlem</th>
           </tr>
         </thead>
@@ -683,10 +695,6 @@ window.addEventListener("DOMContentLoaded", () => {
           <label for="f_aciklama">Hasar / Onarım Açıklaması</label>
           <textarea id="f_aciklama" rows="2" placeholder="Yapılacak işlemler, parça notları..."></textarea>
         </div>
-        <div class="form-group full">
-          <label for="f_yorum_yeni">Atölye Yorumu</label>
-          <input type="text" id="f_yorum_yeni" placeholder="Ek not veya yorum...">
-        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-cancel" onclick="window.closeModal()">İptal</button>
@@ -696,18 +704,18 @@ window.addEventListener("DOMContentLoaded", () => {
   </div>
 </div>
 
-<!-- Yorum Modalı -->
-<div class="modal-backdrop" id="commentModal">
+<!-- Açıklama Düzenleme Modalı -->
+<div class="modal-backdrop" id="descModal">
   <div class="modal">
-    <h2 id="commentModalTitle">Araç Yorumu</h2>
-    <form id="commentForm">
+    <h2 id="descModalTitle">Açıklamayı Düzenle</h2>
+    <form id="descForm">
       <div class="form-group full">
-        <label for="f_yorum">Yorum Metni</label>
-        <textarea id="f_yorum" rows="3" placeholder="Araçla ilgili not veya yorum girin..."></textarea>
+        <label for="f_aciklama_duzenle">Açıklama Metni</label>
+        <textarea id="f_aciklama_duzenle" rows="3" placeholder="Hasar / onarım açıklaması girin..."></textarea>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-cancel" onclick="window.closeCommentModal()">İptal</button>
-        <button type="submit" class="btn-primary">Yorumu Kaydet</button>
+        <button type="button" class="btn-cancel" onclick="window.closeDescModal()">İptal</button>
+        <button type="submit" class="btn-primary">Açıklamayı Kaydet</button>
       </div>
     </form>
   </div>
