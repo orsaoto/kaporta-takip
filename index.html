@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kaporta & Hasar Canlı Bulut Takip Paneli</title>
+<title>Kaporta & Hasar Takip Paneli</title>
 <style>
 :root{--bg:#eef2f7;--surface:#fff;--border:#dbe3ee;--text:#0f172a;--muted:#64748b;--accent:#2563eb;--sh:0 4px 14px rgba(15,23,42,.06);--sh2:0 12px 28px rgba(15,23,42,.10)}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,Tahoma,sans-serif}
@@ -20,6 +20,7 @@ button:disabled{opacity:.48;cursor:not-allowed;transform:none}
 .admin-only{display:none!important}
 body.admin .admin-only{display:inline-flex!important}
 body.admin td.admin-only,body.admin th.admin-only{display:table-cell!important}
+body.admin div.admin-only{display:flex!important}
 .viewer-only{display:inline-flex}
 body.admin .viewer-only{display:none!important}
 .tab-btn{background:var(--surface);color:#334155;border:1.5px solid var(--border);padding:11px 18px;font-weight:800;box-shadow:var(--sh)}
@@ -29,14 +30,13 @@ body.admin .viewer-only{display:none!important}
 .btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
 .btn-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
 .btn-light{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.24)}
-.btn-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
 .btn-reset{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}
 .btn-danger{background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;padding:6px 11px;font-size:.78rem;border-radius:8px}
 .btn-cancel{background:#94a3b8;color:#fff}
 .btn-small{background:#e0e7ff;color:#1d4ed8;border:1px solid #c7d2fe;padding:5px 10px;font-size:.75rem;margin-top:6px}
 .btn-start-repair{background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;padding:5px 10px;font-size:.74rem;border-radius:8px;margin-top:0}
 .btn-wa{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:4px 9px;font-size:.74rem}
-.quick-actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;width:100%}
+.quick-actions{gap:4px;flex-wrap:wrap;margin-top:4px;width:100%}
 .btn-quick{background:#f8fafc;color:#334155;border:1px solid #cbd5e1;padding:3px 7px;font-size:.69rem;border-radius:7px;font-weight:700}
 .btn-quick:hover:not(:disabled){background:#e0e7ff;color:#1d4ed8;border-color:#93c5fd}
 .btn-quick.is-current{background:#1e293b;color:#fff;border-color:#1e293b;opacity:1}
@@ -88,7 +88,7 @@ tbody tr:hover{background:#f8faff}
 .days{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:800;font-size:.78rem;background:#f1f5f9;color:#334155;white-space:nowrap}
 .days.late{background:#fee2e2;color:#b91c1c}
 .overdue{display:block;margin-top:4px;font-size:.72rem;font-weight:800;color:#b91c1c}
-.phone-line{margin-top:5px;font-size:.78rem;color:var(--muted);gap:6px;align-items:center;flex-wrap:wrap}
+.phone-line{margin-top:5px;font-size:.78rem;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .st-modul{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
 .st-eksper{background:#fef3c7;color:#92400e;border-color:#fde68a}
 .st-pert{background:#ffe4e6;color:#9f1239;border-color:#fecdd3}
@@ -107,7 +107,11 @@ tbody tr:hover{background:#f8faff}
 .form-group input,.form-group select,.form-group textarea{padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:.9rem;outline:none}
 .modal-footer{margin-top:22px;display:flex;justify-content:flex-end;gap:10px}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
-@media print{.header-actions,.nav-tabs,.toolbar,.admin-only,.btn-small,.btn-start-repair,.btn-quick,.date-input,.mini-x{display:none!important}body{background:#fff;padding:0}.table-wrapper,.month-group{box-shadow:none;border:1px solid #cbd5e1}}
+@media print{
+.header-actions,.nav-tabs,.toolbar,.btn-small,.btn-wa,.btn-start-repair,.btn-quick,.quick-actions,.date-input,.mini-x,.stat-badge,
+.admin-only,body.admin .admin-only,body.admin td.admin-only,body.admin th.admin-only,body.admin div.admin-only{display:none!important}
+body{background:#fff;padding:0}
+.table-wrapper,.month-group{box-shadow:none;border:1px solid #cbd5e1}}
 </style>
 
 <script type="module">
@@ -144,7 +148,7 @@ const STATUS_CLASS = {"MODÜL ONAY BEKLİYOR":"st-modul","EKSPER ONAYI BEKLİYOR
 
 let vehicles = [], archivedVehicles = [], lastResetMonth = null;
 let vehiclesLoaded = false, metaLoaded = false, isAdmin = false;
-let activeTab = "current", editingDescKey = null, editingDeliveryKey = null, rolloverBusy = false;
+let activeTab = "current", editingDescKey = null, editingDeliveryKey = null, rolloverBusy = false, renderScheduled = false;
 
 const vehiclesRef = ref(db, "vehicles");
 const metaRef = ref(db, "meta/lastResetMonth");
@@ -164,6 +168,9 @@ const normPlate = p => (p || "").toUpperCase().replace(/\s+/g, "");
 function ymFromDelivery(t) { const p = (t || "").split("."); return p.length === 3 && p[2].length === 4 ? `${p[2]}-${p[1].padStart(2, "0")}` : curYM(); }
 function ymLabel(ym) { if (!ym || !ym.includes("-")) return "Diğer Dönem"; const [y, m] = ym.split("-"); return `${MONTHS_TR[+m - 1] || m} ${y}`; }
 
+/* Yazma hatalarını kullanıcıya göster */
+const safe = p => Promise.resolve(p).catch(e => { console.error(e); alert("Kayıt yapılamadı: " + (e && e.message ? e.message : e) + "\nGiriş yapmış olduğunuzdan emin olun."); });
+
 function clean(v) {
   return {
     id: v.id ?? Date.now(), plaka: v.plaka || "", musteri: v.musteri || "", telefon: v.telefon || "",
@@ -171,6 +178,18 @@ function clean(v) {
     tahminiTeslim: v.tahminiTeslim || "", surec: v.surec || "", teslimTarih: v.teslimTarih || "",
     aciklama: v.aciklama || ""
   };
+}
+
+/* Tarih kutusu açıkken canlı güncelleme seçimi bozmasın */
+function softRender() {
+  const a = document.activeElement;
+  if (a && a.classList && a.classList.contains("date-input")) return;
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    renderAll();
+  });
 }
 
 /* ---------- Giriş / çıkış (Kalıcı oturum) ---------- */
@@ -219,31 +238,9 @@ async function runRollover(force = false) {
   finally { rolloverBusy = false; }
 }
 
-/* ---------- Teslim edilenler hariç hepsini temizle ---------- */
-window.clearNonDeliveredVehicles = async function () {
-  if (!isAdmin) { alert("Bu işlem için yönetici girişi yapmalısınız."); return; }
-  const targets = vehicles.filter(v => v.surec !== "TESLİM EDİLDİ");
-  if (!targets.length) {
-    alert("Temizlenecek araç bulunamadı; aktif listede yalnızca 'TESLİM EDİLDİ' araçlar var.");
-    return;
-  }
-  const ok = confirm(`'TESLİM EDİLDİ' dışındaki ${targets.length} araç kaydı kalıcı olarak silinecek. Teslim edilmiş araçlar korunacak. Onaylıyor musunuz?`);
-  if (!ok) return;
-  const updates = {};
-  targets.forEach(v => {
-    updates[`vehicles/${v.firebaseKey}`] = null;
-  });
-  try {
-    await update(ref(db), updates);
-  } catch (e) {
-    console.error(e);
-    alert("Temizleme sırasında hata oluştu: " + e.message);
-  }
-};
-
 onValue(metaRef, snap => {
   lastResetMonth = snap.val() || curYM();
-  if (!snap.exists() && isAdmin) set(metaRef, curYM());
+  if (!snap.exists() && isAdmin) safe(set(metaRef, curYM()));
   metaLoaded = true;
   runRollover(false);
 });
@@ -251,13 +248,13 @@ onValue(vehiclesRef, snap => {
   const d = snap.val();
   vehicles = d ? Object.keys(d).map(k => ({ firebaseKey: k, ...d[k] })) : [];
   vehiclesLoaded = true;
-  renderAll();
+  softRender();
   runRollover(false);
 });
 onValue(ref(db, "archived_vehicles"), snap => {
   const d = snap.val();
   archivedVehicles = d ? Object.keys(d).map(k => ({ firebaseKey: k, ...d[k] })) : [];
-  renderAll();
+  softRender();
 });
 
 window.switchTab = function (tab) {
@@ -304,19 +301,13 @@ function etaCell(v) {
   }
   return html;
 }
-window.setEta = (key, iso) => update(ref(db, `vehicles/${key}`), { tahminiTeslim: iso || "" });
+window.setEta = (key, iso) => safe(update(ref(db, `vehicles/${key}`), { tahminiTeslim: iso || "" }));
 
 function sortVehicles(list, sortBy) {
   const arr = [...list];
-  if (sortBy === "dosya_desc") {
-    return arr.sort((a, b) => (b.dosyaTarih || "").localeCompare(a.dosyaTarih || ""));
-  }
-  if (sortBy === "dosya_asc") {
-    return arr.sort((a, b) => (a.dosyaTarih || "9999-99-99").localeCompare(b.dosyaTarih || "9999-99-99"));
-  }
-  if (sortBy === "serviste_desc") {
-    return arr.sort((a, b) => serviceDaysCount(b) - serviceDaysCount(a));
-  }
+  if (sortBy === "dosya_desc") return arr.sort((a, b) => (b.dosyaTarih || "").localeCompare(a.dosyaTarih || ""));
+  if (sortBy === "dosya_asc") return arr.sort((a, b) => (a.dosyaTarih || "9999-99-99").localeCompare(b.dosyaTarih || "9999-99-99"));
+  if (sortBy === "serviste_desc") return arr.sort((a, b) => serviceDaysCount(b) - serviceDaysCount(a));
   if (sortBy === "serviste_asc") {
     return arr.sort((a, b) => {
       const da = serviceDaysCount(a) < 0 ? 1e9 : serviceDaysCount(a);
@@ -324,12 +315,8 @@ function sortVehicles(list, sortBy) {
       return da - dbDays;
     });
   }
-  if (sortBy === "tahmini_asc") {
-    return arr.sort((a, b) => (a.tahminiTeslim || "9999-99-99").localeCompare(b.tahminiTeslim || "9999-99-99"));
-  }
-  if (sortBy === "tahmini_desc") {
-    return arr.sort((a, b) => (b.tahminiTeslim || "").localeCompare(a.tahminiTeslim || ""));
-  }
+  if (sortBy === "tahmini_asc") return arr.sort((a, b) => (a.tahminiTeslim || "9999-99-99").localeCompare(b.tahminiTeslim || "9999-99-99"));
+  if (sortBy === "tahmini_desc") return arr.sort((a, b) => (b.tahminiTeslim || "").localeCompare(a.tahminiTeslim || ""));
   if (sortBy === "surec_asc") {
     return arr.sort((a, b) => {
       const ia = STATUS_LIST.indexOf(a.surec), ib = STATUS_LIST.indexOf(b.surec);
@@ -347,7 +334,7 @@ window.saveDeliveryDate = function (key, iso, col) {
   if (iso) {
     const tr = isoToTr(iso), data = { teslimTarih: tr };
     if (col === "archived_vehicles") data.archiveMonth = ymFromDelivery(tr);
-    update(ref(db, `${col}/${key}`), data);
+    safe(update(ref(db, `${col}/${key}`), data));
   }
   renderAll();
 };
@@ -372,6 +359,10 @@ window.resetFilters = function () {
   $("insuranceFilter").value = "";
   $("sortFilter").value = "default";
   renderAll();
+};
+window.resetArchiveFilter = function () {
+  $("archiveSearchInput").value = "";
+  renderArchive();
 };
 
 function updateInsuranceDropdown() {
@@ -441,7 +432,7 @@ window.editPhone = function (key) {
   const v = vehicles.find(x => x.firebaseKey === key);
   if (!v) return;
   const p = prompt("Müşteri telefonu (boş bırakırsanız silinir):", v.telefon || "");
-  if (p !== null) update(ref(db, `vehicles/${key}`), { telefon: p.trim() });
+  if (p !== null) safe(update(ref(db, `vehicles/${key}`), { telefon: p.trim() }));
 };
 
 /* ---------- Mükerrer Plaka Kontrolü ---------- */
@@ -475,12 +466,12 @@ function quickButtonsHtml(v) {
   }).join("")}</div>`;
 }
 function renderCurrentTable() {
-  const search = $("searchInput").value.toLowerCase();
+  const search = $("searchInput").value.trim().toLowerCase();
   const sf = $("statusFilter").value, ins = $("insuranceFilter").value, sortBy = $("sortFilter").value;
   const filtered = vehicles.filter(v => {
     if (!matchesStatus(v, sf)) return false;
     if (ins && v.kasko !== ins) return false;
-    return `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ""}${isAdmin ? " " + (v.telefon || "") : ""}`.toLowerCase().includes(search);
+    return `${v.plaka} ${v.musteri} ${v.telefon || ""} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ""}`.toLowerCase().includes(search);
   });
   const rows = sortVehicles(filtered, sortBy);
   $("vehicleTableBody").innerHTML = rows.length ? rows.map((v, i) => `
@@ -488,8 +479,9 @@ function renderCurrentTable() {
       <td><strong>${i + 1}</strong></td>
       <td><span class="plate"><span class="plate-text">${esc(v.plaka)}</span></span></td>
       <td><strong>${esc(v.musteri)}</strong>
-        <div class="phone-line admin-only">${v.telefon ? `📞 ${esc(v.telefon)} <button type="button" class="btn-wa" title="Mevcut sürece uygun WhatsApp mesajı gönder" onclick="window.sendWhatsApp('${v.firebaseKey}')">WhatsApp</button>` : ""}
-        <button type="button" class="btn-small" style="margin-top:0" onclick="window.editPhone('${v.firebaseKey}')">${v.telefon ? "✏️" : "📞 Telefon ekle"}</button></div></td>
+        <div class="phone-line">${v.telefon ? `<span>📞 ${esc(v.telefon)}</span>` : ""}
+        <button type="button" class="btn-wa admin-only" title="Mevcut sürece uygun WhatsApp mesajı gönder" onclick="window.sendWhatsApp('${v.firebaseKey}')" ${v.telefon ? "" : "style=\"display:none!important\""}>WhatsApp</button>
+        <button type="button" class="btn-small admin-only" style="margin-top:0" onclick="window.editPhone('${v.firebaseKey}')">${v.telefon ? "✏️" : "📞 Telefon ekle"}</button></div></td>
       <td>${esc(v.kasko) || "-"}</td>
       <td>${fmt(v.dosyaTarih)}</td>
       <td>${daysCell(v)}</td>
@@ -511,8 +503,16 @@ function renderArchive() {
     box.innerHTML = `<div class="empty-state">Henüz geçmiş aylara taşınmış teslim edilmiş araç yok.</div>`;
     return;
   }
+  const q = ($("archiveSearchInput")?.value || "").trim().toLowerCase();
+  const filtered = q
+    ? archivedVehicles.filter(v => `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ""}`.toLowerCase().includes(q))
+    : archivedVehicles;
+  if (!filtered.length) {
+    box.innerHTML = `<div class="empty-state">Geçmiş aylarda "${esc(q)}" aramasına uygun kayıt bulunamadı.</div>`;
+    return;
+  }
   const g = {};
-  archivedVehicles.forEach(v => { const ym = v.archiveMonth || ymFromDelivery(v.teslimTarih); (g[ym] = g[ym] || []).push(v); });
+  filtered.forEach(v => { const ym = v.archiveMonth || ymFromDelivery(v.teslimTarih); (g[ym] = g[ym] || []).push(v); });
   box.innerHTML = Object.keys(g).sort((a, b) => b.localeCompare(a)).map(ym => `
     <div class="month-group">
       <div class="month-header"><span class="month-title">🗓️ ${esc(ymLabel(ym))}</span><span class="month-pill">${g[ym].length} Teslim Edilen Araç</span></div>
@@ -539,22 +539,19 @@ function renderAll() { updateStats(); updateInsuranceDropdown(); renderCurrentTa
 window.startRepair = function (key) {
   const item = vehicles.find(v => v.firebaseKey === key);
   if (!item) return;
-  update(ref(db, `vehicles/${key}`), {
+  safe(update(ref(db, `vehicles/${key}`), {
     surec: "ONARIM DEVAM EDİYOR",
     onarimTarih: item.onarimTarih || todayIso(),
     teslimTarih: ""
-  });
+  }));
 };
 window.changeStatus = function (key, status) {
   const item = vehicles.find(v => v.firebaseKey === key);
   if (!item || item.surec === status) return;
   const updates = { surec: status };
-  if (status === "TESLİM EDİLDİ") {
-    updates.teslimTarih = todayTr();
-  } else {
-    updates.teslimTarih = "";
-  }
-  update(ref(db, `vehicles/${key}`), updates);
+  if (status === "ONARIM DEVAM EDİYOR" && !item.onarimTarih) updates.onarimTarih = todayIso();
+  updates.teslimTarih = status === "TESLİM EDİLDİ" ? todayTr() : "";
+  safe(update(ref(db, `vehicles/${key}`), updates));
 };
 window.openDescModal = function (key, col) {
   const item = (col === "archived_vehicles" ? archivedVehicles : vehicles).find(v => v.firebaseKey === key);
@@ -570,11 +567,11 @@ window.saveDesc = function (e) {
   e.preventDefault();
   if (!editingDescKey) return;
   const { key, col } = editingDescKey;
-  update(ref(db, `${col}/${key}`), { aciklama: $("f_aciklama_duzenle").value.trim().toUpperCase() });
+  safe(update(ref(db, `${col}/${key}`), { aciklama: $("f_aciklama_duzenle").value.trim().toUpperCase() }));
   window.closeDescModal();
 };
 window.deleteVehicle = function (key, col) {
-  if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) remove(ref(db, `${col}/${key}`));
+  if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) safe(remove(ref(db, `${col}/${key}`)));
 };
 window.openModal = () => {
   $("vehicleForm").reset();
@@ -598,30 +595,34 @@ window.saveVehicle = function (e) {
     if (!ok) return;
   }
   const surec = $("f_surec").value;
-  set(push(vehiclesRef), clean({
+  const rawRepairDate = $("f_onarimTarih").value;
+  const onarimTarih = rawRepairDate || (surec === "ONARIM DEVAM EDİYOR" ? todayIso() : "");
+  safe(set(push(vehiclesRef), clean({
     id: Date.now(),
     plaka,
     musteri: $("f_musteri").value.trim().toUpperCase(),
     telefon: $("f_telefon").value.trim(),
     kasko: $("f_kasko").value,
     dosyaTarih: $("f_dosyaTarih").value,
-    onarimTarih: $("f_onarimTarih").value,
+    onarimTarih,
     tahminiTeslim: $("f_tahmini").value,
     surec,
     teslimTarih: surec === "TESLİM EDİLDİ" ? todayTr() : "",
     aciklama: $("f_aciklama").value.trim().toUpperCase()
-  }));
+  })));
   window.closeModal();
 };
 
 window.exportCSV = function () {
-  const headers = ["Dönem","Sıra No","ARAÇ PLAKASI","MÜŞTERİ ADI / UNVAN","KASKO UNVAN","DOSYA AÇILMA TARİHİ","ONARIM BAŞLAMA TARİHİ","TAHMİNİ TESLİM","ONARIM SÜRECİ","TESLİM TARİHİ","AÇIKLAMA"];
-  const mk = (p, v) => [p, 0, v.plaka, v.musteri, v.kasko, fmt(v.dosyaTarih), fmt(v.onarimTarih), fmt(v.tahminiTeslim), v.surec, v.teslimTarih || "-", v.aciklama];
+  const headers = ["Dönem","Sıra No","ARAÇ PLAKASI","MÜŞTERİ ADI / UNVAN","TELEFON","KASKO UNVAN","DOSYA AÇILMA TARİHİ","ONARIM BAŞLAMA TARİHİ","TAHMİNİ TESLİM","ONARIM SÜRECİ","TESLİM TARİHİ","AÇIKLAMA"];
+  const mk = (p, v) => [p, 0, v.plaka, v.musteri, v.telefon, v.kasko, fmt(v.dosyaTarih), fmt(v.onarimTarih), fmt(v.tahminiTeslim), v.surec, v.teslimTarih || "-", v.aciklama];
   const all = [
     ...vehicles.map(v => mk(`Aktif (${ymLabel(curYM())})`, v)),
     ...archivedVehicles.map(v => mk(`Geçmiş Ay (${ymLabel(v.archiveMonth || ymFromDelivery(v.teslimTarih))})`, v))
   ].map((r, i) => { r[1] = i + 1; return r; });
-  const rows = all.map(r => r.map(x => `"${(x || "").toString().replace(/"/g, '""')}"`).join(";"));
+  /* Excel formül enjeksiyonuna karşı: = + - @ ile başlayan hücrelerin başına ' eklenir */
+  const q = x => { let s = (x == null ? "" : x).toString(); if (/^[=+\-@]/.test(s)) s = "'" + s; return `"${s.replace(/"/g, '""')}"`; };
+  const rows = all.map(r => r.map(q).join(";"));
   const blob = new Blob(["\uFEFF" + [headers.join(";"), ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -630,8 +631,9 @@ window.exportCSV = function () {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  $("currentDateText").textContent = "Canlı Bulut Atölye Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  $("currentDateText").textContent = "Atölye Durum Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   $("searchInput").addEventListener("input", renderAll);
+  $("archiveSearchInput").addEventListener("input", renderArchive);
   $("statusFilter").addEventListener("change", renderAll);
   $("insuranceFilter").addEventListener("change", renderAll);
   $("sortFilter").addEventListener("change", renderAll);
@@ -639,6 +641,13 @@ window.addEventListener("DOMContentLoaded", () => {
   $("vehicleForm").addEventListener("submit", window.saveVehicle);
   $("descForm").addEventListener("submit", window.saveDesc);
   $("loginForm").addEventListener("submit", window.doLogin);
+  /* Esc ile pencereleri kapat */
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    window.closeModal(); window.closeDescModal(); window.closeLogin();
+  });
+  /* Sayfa açık kalırsa gün sayacı ve ay geçişi güncellensin */
+  setInterval(() => { softRender(); runRollover(false); }, 60000);
 });
 </script>
 </head>
@@ -646,13 +655,12 @@ window.addEventListener("DOMContentLoaded", () => {
 <div class="container">
   <header>
     <div>
-      <h1>Kaporta & Hasar Atölyesi — Canlı Bulut Takip</h1>
+      <h1>Kaporta & Hasar Atölyesi</h1>
       <p id="currentDateText">Atölye Durum Raporu</p>
     </div>
     <div class="header-actions">
       <button type="button" class="btn-primary admin-only" onclick="window.openModal()">+ Yeni Araç Ekle</button>
       <button type="button" class="btn-success" onclick="window.exportCSV()">Excel (CSV) İndir</button>
-      <button type="button" class="btn-warn admin-only" onclick="window.clearNonDeliveredVehicles()">🧹 Teslim Dışındakileri Temizle</button>
       <button type="button" class="btn-light" onclick="window.print()">Yazdır / PDF Al</button>
       <button type="button" class="btn-light viewer-only" onclick="window.openLogin()">🔒 Yönetici Girişi</button>
       <button type="button" class="btn-light admin-only" onclick="window.doLogout()">Çıkış</button>
@@ -696,7 +704,7 @@ window.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <div class="toolbar">
-      <input type="text" id="searchInput" placeholder="Plaka, müşteri, kasko veya açıklama ara...">
+      <input type="text" id="searchInput" placeholder="Plaka, müşteri, telefon, kasko veya açıklama ara...">
       <select id="statusFilter">
         <option value="ALL">Aktif Araçlar (Teslim Hariç)</option>
         <option value="ALL_INC">Tüm Kayıtlar (Teslim Dahil)</option>
@@ -751,6 +759,10 @@ window.addEventListener("DOMContentLoaded", () => {
   </section>
 
   <section id="archiveTabSection" style="display:none">
+    <div class="toolbar">
+      <input type="text" id="archiveSearchInput" placeholder="Geçmiş aylarda plaka, müşteri, kasko, teslim tarihi veya açıklama ara...">
+      <button type="button" class="btn-reset" onclick="window.resetArchiveFilter()">Sıfırla</button>
+    </div>
     <div id="archiveGroupsContainer"></div>
   </section>
 </div>
@@ -841,11 +853,11 @@ window.addEventListener("DOMContentLoaded", () => {
       <div class="form-grid">
         <div class="form-group full">
           <label for="l_email">E-posta</label>
-          <input type="email" id="l_email" autocomplete="off" placeholder="E-posta adresinizi girin" required>
+          <input type="email" id="l_email" autocomplete="username" placeholder="E-posta adresinizi girin" required>
         </div>
         <div class="form-group full">
           <label for="l_pass">Şifre</label>
-          <input type="password" id="l_pass" autocomplete="new-password" placeholder="Şifrenizi girin" required>
+          <input type="password" id="l_pass" autocomplete="current-password" placeholder="Şifrenizi girin" required>
         </div>
       </div>
       <div class="modal-footer">
