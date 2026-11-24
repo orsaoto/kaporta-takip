@@ -1,356 +1,543 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kaporta & Hasar Canlı Bulut Takip Paneli</title>
-  
-  <!-- Firebase SDK (Modular CDN) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaporta & Hasar Canlı Bulut Takip Paneli</title>
+<style>
+:root{--bg:#eef2f7;--surface:#fff;--border:#dbe3ee;--text:#0f172a;--muted:#64748b;--accent:#2563eb;--sh:0 4px 14px rgba(15,23,42,.06);--sh2:0 12px 28px rgba(15,23,42,.10)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,Tahoma,sans-serif}
+body{background:var(--bg);color:var(--text);padding:22px;min-height:100vh}
+.container{max-width:1500px;margin:0 auto}
+header{background:linear-gradient(125deg,#0b132b,#1d3557 48%,#2563eb);color:#fff;padding:26px 30px;border-radius:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;margin-bottom:18px}
+header h1{font-size:1.5rem;font-weight:800}
+header p{color:#dbeafe;font-size:.9rem;margin-top:5px}
+.header-actions,.tab-group{display:flex;gap:10px;flex-wrap:wrap}
+.nav-tabs{margin-bottom:20px}
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-weight:700;font-size:.86rem;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
+button:active{transform:scale(.98)}
+.admin-only{display:none!important}
+body.admin .admin-only{display:inline-flex!important}
+body.admin td.admin-only,body.admin th.admin-only{display:table-cell!important}
+.viewer-only{display:inline-flex}
+body.admin .viewer-only{display:none!important}
+.tab-btn{background:var(--surface);color:#334155;border:1.5px solid var(--border);padding:11px 18px;font-weight:800;box-shadow:var(--sh)}
+.tab-btn.active{background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;border-color:transparent}
+.tab-count{background:rgba(15,23,42,.08);padding:2px 8px;border-radius:999px;font-size:.74rem}
+.tab-btn.active .tab-count{background:rgba(255,255,255,.22)}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.btn-success{background:linear-gradient(135deg,#10b981,#059669);color:#fff}
+.btn-light{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.24)}
+.btn-warn{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.btn-reset{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}
+.btn-danger{background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;padding:6px 11px;font-size:.78rem;border-radius:8px}
+.btn-cancel{background:#94a3b8;color:#fff}
+.btn-small{background:#e0e7ff;color:#1d4ed8;border:1px solid #c7d2fe;padding:5px 10px;font-size:.75rem;margin-top:6px}
+.btn-wa{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:4px 9px;font-size:.74rem}
+.desc-text{font-size:.86rem;line-height:1.35}
+.notes-cell{min-width:230px;max-width:330px}
+.comment-box{margin-top:7px;padding:7px 10px;background:#eff6ff;border-left:3.5px solid #2563eb;border-radius:8px;font-size:.8rem;word-break:break-word}
+.comment-label{font-weight:800;color:#1d4ed8}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:16px;margin-bottom:20px}
+.stat-card{background:var(--surface);padding:18px 20px;border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh);cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
+.stat-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--c,#2563eb)}
+.stat-card.orange{--c:linear-gradient(90deg,#f59e0b,#f97316)}
+.stat-card.pink{--c:linear-gradient(90deg,#ec4899,#db2777)}
+.stat-card.purple{--c:linear-gradient(90deg,#8b5cf6,#4f46e5)}
+.stat-card.red{--c:linear-gradient(90deg,#ef4444,#b91c1c)}
+.stat-card.gray{--c:linear-gradient(90deg,#64748b,#334155)}
+.stat-card:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
+.stat-card.active-card{border-color:var(--accent);box-shadow:0 12px 26px rgba(37,99,235,.16)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stat-title{font-size:.78rem;color:var(--muted);font-weight:800;text-transform:uppercase}
+.stat-badge{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569}
+.stat-card.active-card .stat-badge{background:#dbeafe;color:#1d4ed8}
+.stat-value{font-size:1.95rem;font-weight:900;margin-top:8px}
+.stat-sub{font-size:.76rem;color:var(--muted);margin-top:6px;font-weight:600}
+.toolbar{background:rgba(255,255,255,.92);padding:14px 18px;border-radius:16px;border:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;box-shadow:var(--sh)}
+.toolbar input,.toolbar select{padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:.88rem;font-weight:600;outline:none;background:#fff}
+.toolbar input{flex:1;min-width:240px;font-weight:500}
+.month-group{background:var(--surface);border-radius:16px;border:1px solid var(--border);box-shadow:var(--sh2);margin-bottom:22px;overflow:hidden}
+.month-header{background:#f1f5f9;padding:15px 20px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.month-title{font-weight:800}
+.month-pill{background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:.78rem;padding:5px 12px;border-radius:999px}
+.empty-state{background:var(--surface);border-radius:16px;border:1px solid var(--border);padding:36px 24px;text-align:center;color:var(--muted);font-weight:600}
+.table-wrapper{background:var(--surface);border-radius:16px;border:1px solid var(--border);overflow-x:auto;box-shadow:var(--sh2)}
+.month-group .table-wrapper{border:none;border-radius:0;box-shadow:none}
+table{width:100%;border-collapse:collapse;text-align:left;font-size:.88rem}
+thead{background:#f1f5f9;border-bottom:2px solid var(--border)}
+th{padding:14px 14px;font-weight:800;color:#1e293b;white-space:nowrap;font-size:.74rem;text-transform:uppercase}
+td{padding:12px 14px;border-bottom:1px solid #eef2f6;vertical-align:middle}
+tbody tr:hover{background:#f8faff}
+.plate{display:inline-flex;align-items:center;border:1.5px solid #0f172a;border-radius:6px;overflow:hidden;font-weight:900;font-size:.84rem;background:#fff;white-space:nowrap}
+.plate::before{content:"TR";background:#2563eb;color:#fff;font-size:.58rem;font-weight:800;padding:5px 4px;margin-right:7px}
+.plate-text{padding-right:9px}
+.status-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status-select,.status-badge{padding:7px 12px;border-radius:999px;font-weight:800;font-size:.75rem;border:1.5px solid transparent;outline:none;white-space:nowrap}
+.status-select{cursor:pointer}
+.delivery-badge-btn{background:#e2e8f0;color:#0f172a;font-size:.74rem;font-weight:800;padding:5px 9px;border-radius:8px;border:1px solid #cbd5e1}
+.delivery-text{font-size:.76rem;font-weight:800;color:#334155}
+.date-input{padding:4px 8px;border:1.5px solid #2563eb;border-radius:8px;font-size:.76rem;font-weight:700;outline:none}
+.mini-x{background:#e2e8f0;color:#334155;padding:4px 8px;font-size:.75rem;border-radius:8px}
+.days{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:800;font-size:.78rem;background:#f1f5f9;color:#334155;white-space:nowrap}
+.days.late{background:#fee2e2;color:#b91c1c}
+.overdue{display:block;margin-top:4px;font-size:.72rem;font-weight:800;color:#b91c1c}
+.phone-line{margin-top:5px;font-size:.78rem;color:var(--muted);gap:6px;align-items:center;flex-wrap:wrap}
+.st-modul{background:#ffedd5;color:#9a3412;border-color:#fed7aa}
+.st-eksper{background:#fef3c7;color:#92400e;border-color:#fde68a}
+.st-pert{background:#ffe4e6;color:#9f1239;border-color:#fecdd3}
+.st-parca{background:#fce7f3;color:#9d174d;border-color:#fbcfe8}
+.st-randevu{background:#e0e7ff;color:#3730a3;border-color:#c7d2fe}
+.st-devam{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}
+.st-kontrol{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+.st-teslim{background:#f1f5f9;color:#334155;border-color:#cbd5e1}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);justify-content:center;align-items:center;padding:16px;z-index:100}
+.modal{background:#fff;width:100%;max-width:620px;border-radius:18px;padding:26px;max-height:92vh;overflow:auto}
+.modal h2{margin-bottom:18px;font-size:1.25rem;font-weight:800}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:.8rem;font-weight:700;color:#334155}
+.form-group input,.form-group select,.form-group textarea{padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:.9rem;outline:none}
+.form-group input[readonly]{background:#f8fafc;color:#334155;font-weight:700}
+.modal-footer{margin-top:22px;display:flex;justify-content:flex-end;gap:10px}
+.hist-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef2f6;font-size:.86rem;align-items:center}
+.hist-row small{color:var(--muted);display:block;margin-top:2px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+@media print{.header-actions,.nav-tabs,.toolbar,.admin-only,.btn-small,.date-input,.mini-x{display:none!important}body{background:#fff;padding:0}.table-wrapper,.month-group{box-shadow:none;border:1px solid #cbd5e1}}
+</style>
 
-    // --- SİZİN FİREBASE BİLGİLERİNİZ ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyAXYhU-jKeTfn7rPLNPsaR_9a4uucyDglk",
-      authDomain: "kaporta-takip-78e5b.firebaseapp.com",
-      databaseURL: "https://kaporta-takip-78e5b-default-rtdb.firebaseio.com",
-      projectId: "kaporta-takip-78e5b",
-      storageBucket: "kaporta-takip-78e5b.firebasestorage.app",
-      messagingSenderId: "395154933101",
-      appId: "1:395154933101:web:f0ced7654eb3668c794664",
-      measurementId: "G-TYPWN0J6J8"
-    };
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, update, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // Firebase Başlatma
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyAXYhU-jKeTfn7rPLNPsaR_9a4uucyDglk",
+  authDomain: "kaporta-takip-78e5b.firebaseapp.com",
+  databaseURL: "https://kaporta-takip-78e5b-default-rtdb.firebaseio.com",
+  projectId: "kaporta-takip-78e5b",
+  storageBucket: "kaporta-takip-78e5b.firebasestorage.app",
+  messagingSenderId: "395154933101",
+  appId: "1:395154933101:web:f0ced7654eb3668c794664",
+  measurementId: "G-TYPWN0J6J8"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const auth = getAuth(app);
 
-    const STATUS_LIST = [
-      "MODÜL ONAY BEKLİYOR",
-      "EKSPER ONAYI BEKLİYOR",
-      "PERT DURUMU BEKLİYOR",
-      "PARÇALARI SİPARİŞ EDİLDİ",
-      "ONARIM RANDEVUSU VERİLDİ",
-      "ONARIM DEVAM EDİYOR",
-      "SON KONTROLDE",
-      "TESLİM EDİLDİ"
-    ];
+const ADMIN_EMAIL = "hasar1@orsaoto.com";
+const ADMIN_PASS = "Hasancrk57.";
 
-    const defaultVehicles = [
-      { id: 1, plaka: "34HVK191", musteri: "EFRAİL AKSÖZ", kasko: "GARANTİ", dosyaTarih: "2026-11-17", onarimTarih: "2026-11-17", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "GARANTİDEN HOPARLÖR VE CAM AÇMA DÜĞMESİ DEĞİŞTİ" },
-      { id: 2, plaka: "41ALV593", musteri: "STE PROJE", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-10-31", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
-      { id: 3, plaka: "41AVM820", musteri: "NECGÜL TURİZM", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-05", onarimTarih: "", surec: "TESLİM EDİLDİ", teslimTarih: "17.11.2026", aciklama: "" },
-      { id: 4, plaka: "34MYG759", musteri: "TEDİ DİSCOUNT", kasko: "HDİ SİGORTA", dosyaTarih: "2026-11-07", onarimTarih: "2026-11-11", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "TOPLANMA SÜRECİNDE TAHMİNİ TESLİM BU HAFTA İÇİ" },
-      { id: 5, plaka: "34HZR058", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE KATILIM SİGORTA", dosyaTarih: "2026-10-15", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "ANAHTAR KAYBI" },
-      { id: 6, plaka: "34DZF334", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ YAN HASARLI ORTALAMA TESLİM TARİHİ: BU HAFTA İÇİ" },
-      { id: 7, plaka: "34DAS608", musteri: "KNK GEMİ", kasko: "BEREKET SİGORTA", dosyaTarih: "2026-10-16", onarimTarih: "", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "" },
-      { id: 8, plaka: "34BDB775", musteri: "ONUR SÖNMEZ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "2026-11-14", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
-      { id: 9, plaka: "34CIG410", musteri: "HASAN HÜSEYİN ÇETİN", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-04", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA BEKLİYOR" },
-      { id: 10, plaka: "34EFE749", musteri: "EFE TUR", kasko: "AXA SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 11, plaka: "34FND197", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-06", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 12, plaka: "34HZR088", musteri: "İBRAHİM AKKUŞ", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
-      { id: 13, plaka: "34HZR055", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-11", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 14, plaka: "34EKA037", musteri: "ERKAN KAHRAMAN", kasko: "ACNTÜRK SİGORTA", dosyaTarih: "2026-11-12", onarimTarih: "", surec: "PARÇALARI SİPARİŞ EDİLDİ", teslimTarih: "", aciklama: "PARÇA SİPARİŞ EDİLDİ" },
-      { id: 15, plaka: "34DPY796", musteri: "ÖMER ÇELİK", kasko: "DOĞA SİGORTA", dosyaTarih: "2026-10-07", onarimTarih: "", surec: "PERT DURUMU BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 16, plaka: "34GKH978", musteri: "GÖKHAN", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 17, plaka: "34FND148", musteri: "FONDİ", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 18, plaka: "34SD1974", musteri: "SERDAR", kasko: "RAY SİGORTA", dosyaTarih: "2026-11-02", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 19, plaka: "34YUN260", musteri: "YUNUS", kasko: "ZURİCH SİGORTA", dosyaTarih: "2026-10-28", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 20, plaka: "34VUR775", musteri: "VURAL", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-10-27", onarimTarih: "", surec: "MODÜL ONAY BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 21, plaka: "34HZR081", musteri: "MUHAMMET ALİ ÖZTÜRK", kasko: "TÜRKİYE SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 22, plaka: "34DZF342", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 23, plaka: "34DZF338", musteri: "ÖZCAN KILIÇ", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-13", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 24, plaka: "34KUT259", musteri: "KUTLU", kasko: "ANADOLU SİGORTA", dosyaTarih: "2026-11-09", onarimTarih: "", surec: "EKSPER ONAYI BEKLİYOR", teslimTarih: "", aciklama: "" },
-      { id: 25, plaka: "34KP2161", musteri: "İSA ÇANKAYA", kasko: "SOMPO SİGORTA", dosyaTarih: "2026-11-10", onarimTarih: "2026-11-12", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SOL KISIM HASARLI TAHMİNİ TESLİM BU HAFTA İÇİ" },
-      { id: 26, plaka: "34PER268", musteri: "FAHRETTİN AKBABA", kasko: "UNİCO SİGORTA", dosyaTarih: "2026-11-03", onarimTarih: "2026-11-07", surec: "ONARIM DEVAM EDİYOR", teslimTarih: "", aciklama: "SAĞ KISIM HASARLI ORTALAMA TESLİM TARİHİ : BU HAFTA İÇİ" }
-    ];
+const LATE_DAYS = 15;
+const STATUS_LIST = ["MODÜL ONAY BEKLİYOR","EKSPER ONAYI BEKLİYOR","PERT DURUMU BEKLİYOR","PARÇALARI SİPARİŞ EDİLDİ","ONARIM RANDEVUSU VERİLDİ","ONARIM DEVAM EDİYOR","SON KONTROLDE","TESLİM EDİLDİ"];
+const APPROVAL = ["MODÜL ONAY BEKLİYOR","EKSPER ONAYI BEKLİYOR"];
+const REPAIR = ["ONARIM RANDEVUSU VERİLDİ","ONARIM DEVAM EDİYOR","SON KONTROLDE"];
+const MONTHS_TR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const STATUS_CLASS = {"MODÜL ONAY BEKLİYOR":"st-modul","EKSPER ONAYI BEKLİYOR":"st-eksper","PERT DURUMU BEKLİYOR":"st-pert","PARÇALARI SİPARİŞ EDİLDİ":"st-parca","ONARIM RANDEVUSU VERİLDİ":"st-randevu","ONARIM DEVAM EDİYOR":"st-devam","SON KONTROLDE":"st-kontrol","TESLİM EDİLDİ":"st-teslim"};
 
-    let vehicles = [];
+let vehicles = [], archivedVehicles = [], lastResetMonth = null;
+let vehiclesLoaded = false, metaLoaded = false, isAdmin = false;
+let activeTab = "current", editingCommentKey = null, editingDeliveryKey = null, rolloverBusy = false;
 
-    // Firebase'den Canlı Veri Dinleme
-    const dbRef = ref(db, 'vehicles');
-    onValue(dbRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        vehicles = Object.keys(data).map(key => ({
-          firebaseKey: key,
-          ...data[key]
-        }));
-      } else {
-        set(dbRef, defaultVehicles);
-        vehicles = defaultVehicles;
-      }
-      renderTable();
-    });
+const vehiclesRef = ref(db, "vehicles");
+const metaRef = ref(db, "meta/lastResetMonth");
 
-    function getTodayFormatted() {
-      const d = new Date();
-      return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
-    }
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const curYM = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+const todayTr = () => { const d = new Date(); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; };
+const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const parseIso = i => { const p = (i || "").split("-"); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; };
+const dayDiff = (a, b) => Math.round((b - a) / 864e5);
+const esc = t => t ? t.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;") : "";
+const fmt = d => { if (!d) return "-"; const p = d.split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : d; };
+const trToIso = t => { const p = (t || "").split("."); return p.length === 3 && p[2].length === 4 ? `${p[2]}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}` : ""; };
+const isoToTr = i => { const p = (i || "").split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : i; };
+function ymFromDelivery(t) { const p = (t || "").split("."); return p.length === 3 && p[2].length === 4 ? `${p[2]}-${p[1].padStart(2, "0")}` : curYM(); }
+function ymLabel(ym) { if (!ym || !ym.includes("-")) return "Diğer Dönem"; const [y, m] = ym.split("-"); return `${MONTHS_TR[+m - 1] || m} ${y}`; }
 
-    window.getStatusClass = function(status) {
-      if (status === "MODÜL ONAY BEKLİYOR") return "st-modul";
-      if (status === "EKSPER ONAYI BEKLİYOR") return "st-eksper";
-      if (status === "PERT DURUMU BEKLİYOR") return "st-pert";
-      if (status === "PARÇALARI SİPARİŞ EDİLDİ") return "st-parca";
-      if (status === "ONARIM RANDEVUSU VERİLDİ") return "st-randevu";
-      if (status === "ONARIM DEVAM EDİYOR") return "st-devam";
-      if (status === "SON KONTROLDE") return "st-kontrol";
-      if (status === "TESLİM EDİLDİ") return "st-teslim";
-      return "st-devam";
-    }
+function clean(v) {
+  return {
+    id: v.id ?? Date.now(), plaka: v.plaka || "", musteri: v.musteri || "", telefon: v.telefon || "",
+    kasko: v.kasko || "", dosyaTarih: v.dosyaTarih || "", onarimTarih: v.onarimTarih || "",
+    tahminiTeslim: v.tahminiTeslim || "", surec: v.surec || "", teslimTarih: v.teslimTarih || "",
+    aciklama: v.aciklama || "", yorum: v.yorum || "", gecmis: Array.isArray(v.gecmis) ? v.gecmis : []
+  };
+}
 
-    function formatDate(dateStr) {
-      if (!dateStr) return "-";
-      const parts = dateStr.split("-");
-      return parts.length === 3 ? `${parts[2]}.${parts[1]}.${parts[0]}` : dateStr;
-    }
+function resetLoginFields() {
+  $("l_email").value = ADMIN_EMAIL;
+  $("l_pass").value = ADMIN_PASS;
+}
 
-    function escapeHtml(text) {
-      if (!text) return "";
-      return text.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
+/* ---------- Giriş / çıkış (Kalıcı oturum) ---------- */
+onAuthStateChanged(auth, user => {
+  isAdmin = !!user;
+  document.body.classList.toggle("admin", isAdmin);
+  editingDeliveryKey = null;
+  renderAll();
+  runRollover(false);
+});
+window.openLogin = () => {
+  resetLoginFields();
+  $("loginModal").style.display = "flex";
+};
+window.closeLogin = () => {
+  $("loginModal").style.display = "none";
+  resetLoginFields();
+};
+window.doLogin = async function (e) {
+  e.preventDefault();
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS);
+    window.closeLogin();
+  } catch (err) {
+    alert("Giriş başarısız: " + err.message);
+  }
+};
+window.doLogout = () => signOut(auth);
 
-    function updateInsuranceDropdown() {
-      const select = document.getElementById("insuranceFilter");
-      const current = select.value;
-      const companies = [...new Set(vehicles.map(v => v.kasko).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
-      select.innerHTML = `<option value="">Tüm Sigorta / Kasko Şirketleri</option>` +
-        companies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-      select.value = current;
-    }
+/* ---------- Ay geçişi ---------- */
+async function runRollover(force = false) {
+  if (!isAdmin || rolloverBusy || !vehiclesLoaded || !metaLoaded) return;
+  const cur = curYM();
+  if (!force && lastResetMonth === cur) return;
+  const updates = { "meta/lastResetMonth": cur };
+  vehicles.filter(v => v.surec === "TESLİM EDİLDİ").forEach(v => {
+    const tarih = v.teslimTarih || todayTr();
+    updates[`archived_vehicles/a_${v.firebaseKey}`] = { ...clean(v), teslimTarih: tarih, archiveMonth: ymFromDelivery(tarih) };
+    updates[`vehicles/${v.firebaseKey}`] = null;
+  });
+  rolloverBusy = true;
+  try { await update(ref(db), updates); }
+  catch (e) { console.error(e); alert("Arşivleme hatası: " + e.message); }
+  finally { rolloverBusy = false; }
+}
+window.manualMonthRollover = async function () {
+  const n = vehicles.filter(v => v.surec === "TESLİM EDİLDİ").length;
+  if (!n) { alert("Arşivlenecek teslim edilmiş araç yok."); return; }
+  if (confirm(`${n} teslim edilmiş araç 'Geçmiş Aylar' sekmesine taşınacak. Onaylıyor musunuz?`)) await runRollover(true);
+};
 
-    function updateStats() {
-      const active = vehicles.filter(v => v.surec !== "TESLİM EDİLDİ").length;
-      const waiting = vehicles.filter(v => ["MODÜL ONAY BEKLİYOR", "EKSPER ONAYI BEKLİYOR", "PERT DURUMU BEKLİYOR", "PARÇALARI SİPARİŞ EDİLDİ", "ONARIM RANDEVUSU VERİLDİ"].includes(v.surec)).length;
-      const working = vehicles.filter(v => v.surec === "ONARIM DEVAM EDİYOR").length;
-      const ready = vehicles.filter(v => v.surec === "SON KONTROLDE").length;
-      const delivered = vehicles.filter(v => v.surec === "TESLİM EDİLDİ").length;
+/* ---------- Teslim edilenler hariç hepsini temizle ---------- */
+window.clearNonDeliveredVehicles = async function () {
+  if (!isAdmin) { alert("Bu işlem için yönetici girişi yapmalısınız."); return; }
+  const targets = vehicles.filter(v => v.surec !== "TESLİM EDİLDİ");
+  if (!targets.length) {
+    alert("Temizlenecek araç bulunamadı; aktif listede yalnızca 'TESLİM EDİLDİ' araçlar var.");
+    return;
+  }
+  const ok = confirm(`'TESLİM EDİLDİ' dışındaki ${targets.length} araç kaydı kalıcı olarak silinecek. Teslim edilmiş araçlar korunacak. Onaylıyor musunuz?`);
+  if (!ok) return;
+  const updates = {};
+  targets.forEach(v => {
+    updates[`vehicles/${v.firebaseKey}`] = null;
+  });
+  try {
+    await update(ref(db), updates);
+  } catch (e) {
+    console.error(e);
+    alert("Temizleme sırasında hata oluştu: " + e.message);
+  }
+};
 
-      document.getElementById("statActive").textContent = active;
-      document.getElementById("statWaiting").textContent = waiting;
-      document.getElementById("statWorking").textContent = working;
-      document.getElementById("statReady").textContent = ready;
-      document.getElementById("statDelivered").textContent = delivered;
-    }
+onValue(metaRef, snap => {
+  lastResetMonth = snap.val() || curYM();
+  if (!snap.exists() && isAdmin) set(metaRef, curYM());
+  metaLoaded = true;
+  runRollover(false);
+});
+onValue(vehiclesRef, snap => {
+  const d = snap.val();
+  vehicles = d ? Object.keys(d).map(k => ({ firebaseKey: k, ...d[k] })) : [];
+  vehiclesLoaded = true;
+  renderAll();
+  runRollover(false);
+});
+onValue(ref(db, "archived_vehicles"), snap => {
+  const d = snap.val();
+  archivedVehicles = d ? Object.keys(d).map(k => ({ firebaseKey: k, ...d[k] })) : [];
+  renderAll();
+});
 
-    function renderTable() {
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      const statusFilter = document.getElementById("statusFilter").value;
-      const insFilter = document.getElementById("insuranceFilter").value;
+window.switchTab = function (tab) {
+  activeTab = tab; editingDeliveryKey = null;
+  $("tabCurrentBtn").classList.toggle("active", tab === "current");
+  $("tabArchiveBtn").classList.toggle("active", tab === "archive");
+  $("currentTabSection").style.display = tab === "current" ? "block" : "none";
+  $("archiveTabSection").style.display = tab === "archive" ? "block" : "none";
+  renderAll();
+};
 
-      const filtered = vehicles.filter(v => {
-        if (statusFilter === "ALL_INC" && v.surec === "TESLİM EDİLDİ") return false;
-        if (statusFilter !== "ALL" && statusFilter !== "ALL_INC" && v.surec !== statusFilter) return false;
-        if (insFilter && v.kasko !== insFilter) return false;
-        const text = `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.teslimTarih || ''}`.toLowerCase();
-        return text.includes(search);
-      });
+/* ---------- Gün sayacı, gecikme ---------- */
+function daysCell(v) {
+  const start = parseIso(v.dosyaTarih);
+  if (!start) return `<span class="days">-</span>`;
+  const delivered = v.surec === "TESLİM EDİLDİ";
+  const end = delivered && v.teslimTarih ? parseIso(trToIso(v.teslimTarih)) : new Date(new Date().setHours(0, 0, 0, 0));
+  const n = Math.max(0, dayDiff(start, end || new Date()));
+  return `<span class="days ${!delivered && n >= LATE_DAYS ? "late" : ""}">${n} gün</span>`;
+}
+function isLate(v) {
+  if (v.surec === "TESLİM EDİLDİ") return false;
+  const eta = parseIso(v.tahminiTeslim);
+  return !!eta && dayDiff(eta, new Date(new Date().setHours(0, 0, 0, 0))) > 0;
+}
+function etaCell(v) {
+  if (v.surec === "TESLİM EDİLDİ") return "-";
+  let html = isAdmin
+    ? `<input type="date" class="date-input" value="${esc(v.tahminiTeslim || "")}" onchange="window.setEta('${v.firebaseKey}', this.value)">`
+    : fmt(v.tahminiTeslim);
+  if (isLate(v)) {
+    const n = dayDiff(parseIso(v.tahminiTeslim), new Date(new Date().setHours(0, 0, 0, 0)));
+    html += `<span class="overdue">⚠ ${n} gün gecikti</span>`;
+  }
+  return html;
+}
+window.setEta = (key, iso) => update(ref(db, `vehicles/${key}`), { tahminiTeslim: iso || "" });
 
-      const tbody = document.getElementById("vehicleTableBody");
-      tbody.innerHTML = filtered.map((v, idx) => `
-        <tr>
-          <td><strong>${idx + 1}</strong></td>
-          <td><span class="plate"><span class="plate-text">${escapeHtml(v.plaka)}</span></span></td>
-          <td><strong>${escapeHtml(v.musteri)}</strong></td>
-          <td>${escapeHtml(v.kasko) || "-"}</td>
-          <td>${formatDate(v.dosyaTarih)}</td>
-          <td>${formatDate(v.onarimTarih)}</td>
-          <td>
-            <div class="status-cell">
-              <select class="status-select ${window.getStatusClass(v.surec)}" onchange="window.changeStatus('${v.firebaseKey}', this.value)">
-                ${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}
-              </select>
-              ${v.surec === "TESLİM EDİLDİ" && v.teslimTarih ? `<span class="delivery-badge">📅 ${escapeHtml(v.teslimTarih)}</span>` : ""}
-            </div>
-          </td>
-          <td>${escapeHtml(v.aciklama) || "-"}</td>
-          <td class="no-print">
-            <button type="button" class="btn-danger" onclick="window.deleteVehicle('${v.firebaseKey}')">Sil</button>
-          </td>
-        </tr>
-      `).join("");
+/* ---------- Teslim tarihi düzenleme ---------- */
+window.startEditDeliveryDate = (key, col) => { editingDeliveryKey = `${col}:${key}`; renderAll(); };
+window.cancelEditDeliveryDate = () => { editingDeliveryKey = null; renderAll(); };
+window.saveDeliveryDate = function (key, iso, col) {
+  editingDeliveryKey = null;
+  if (iso) {
+    const tr = isoToTr(iso), data = { teslimTarih: tr };
+    if (col === "archived_vehicles") data.archiveMonth = ymFromDelivery(tr);
+    update(ref(db, `${col}/${key}`), data);
+  }
+  renderAll();
+};
+function deliveryCell(v, col) {
+  if (v.surec !== "TESLİM EDİLDİ" && col !== "archived_vehicles") return "";
+  if (!isAdmin) return `<span class="delivery-text">📅 ${esc(v.teslimTarih) || "-"}</span>`;
+  if (editingDeliveryKey === `${col}:${v.firebaseKey}`) {
+    return `<input type="date" class="date-input" value="${trToIso(v.teslimTarih) || todayIso()}" onchange="window.saveDeliveryDate('${v.firebaseKey}', this.value, '${col}')"><button type="button" class="mini-x" onclick="window.cancelEditDeliveryDate()">✖</button>`;
+  }
+  return `<button type="button" class="delivery-badge-btn" onclick="window.startEditDeliveryDate('${v.firebaseKey}', '${col}')">📅 ${esc(v.teslimTarih) || "Tarih Seç"} ✏️</button>`;
+}
 
-      updateStats();
-      updateInsuranceDropdown();
-    }
+/* ---------- Filtre, istatistik ---------- */
+function syncActiveCard() {
+  const val = $("statusFilter").value;
+  document.querySelectorAll(".stat-card").forEach(c => c.classList.toggle("active-card", c.dataset.filter === val));
+}
+window.selectGroupFilter = function (f) { const s = $("statusFilter"); s.value = s.value === f ? "ALL" : f; renderAll(); };
+window.resetFilters = function () { $("searchInput").value = ""; $("statusFilter").value = "ALL"; $("insuranceFilter").value = ""; renderAll(); };
 
-    window.changeStatus = function(firebaseKey, newStatus) {
-      const item = vehicles.find(v => v.firebaseKey === firebaseKey);
-      if (item) {
-        item.surec = newStatus;
-        if (newStatus === "TESLİM EDİLDİ") {
-          item.teslimTarih = getTodayFormatted();
-        } else {
-          item.teslimTarih = "";
-        }
-        const itemRef = ref(db, `vehicles/${firebaseKey}`);
-        set(itemRef, {
-          id: item.id,
-          plaka: item.plaka,
-          musteri: item.musteri,
-          kasko: item.kasko,
-          dosyaTarih: item.dosyaTarih,
-          onarimTarih: item.onarimTarih,
-          surec: item.surec,
-          teslimTarih: item.teslimTarih,
-          aciklama: item.aciklama
-        });
-      }
-    }
+function updateInsuranceDropdown() {
+  const sel = $("insuranceFilter"), cur = sel.value;
+  const list = [...new Set(vehicles.map(v => v.kasko).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+  sel.innerHTML = `<option value="">Tüm Sigorta / Kasko Şirketleri</option>` + list.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  sel.value = cur;
+}
+function updateStats() {
+  const n = s => vehicles.filter(v => v.surec === s).length;
+  const modul = n("MODÜL ONAY BEKLİYOR"), eksper = n("EKSPER ONAYI BEKLİYOR");
+  const randevu = n("ONARIM RANDEVUSU VERİLDİ"), onarim = n("ONARIM DEVAM EDİYOR"), kontrol = n("SON KONTROLDE");
+  $("statApproval").textContent = modul + eksper;
+  $("statApprovalSub").textContent = `Modül: ${modul} • Eksper: ${eksper}`;
+  $("statParts").textContent = n("PARÇALARI SİPARİŞ EDİLDİ");
+  $("statRepairGroup").textContent = randevu + onarim + kontrol;
+  $("statRepairSub").textContent = `Randevu: ${randevu} • Onarımda: ${onarim} • Son Kontrol: ${kontrol}`;
+  $("statLate").textContent = vehicles.filter(isLate).length;
+  $("statDelivered").textContent = n("TESLİM EDİLDİ");
+  $("statDeliveredSub").textContent = `${ymLabel(curYM())} teslimatı`;
+  $("archiveTabCount").textContent = archivedVehicles.length;
+}
+function matchesStatus(v, f) {
+  const s = v.surec;
+  if (f === "ALL") return s !== "TESLİM EDİLDİ";
+  if (f === "ALL_INC") return true;
+  if (f === "GRP_ONAY") return APPROVAL.includes(s);
+  if (f === "GRP_ONARIM") return REPAIR.includes(s);
+  if (f === "LATE") return isLate(v);
+  return s === f;
+}
 
-    window.deleteVehicle = function(firebaseKey) {
-      if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) {
-        const itemRef = ref(db, `vehicles/${firebaseKey}`);
-        remove(itemRef);
-      }
-    }
+/* ---------- WhatsApp ---------- */
+window.sendWhatsApp = function (key) {
+  const v = vehicles.find(x => x.firebaseKey === key);
+  if (!v || !v.telefon) return;
+  let d = v.telefon.replace(/\D/g, "");
+  if (d.startsWith("00")) d = d.slice(2);
+  else if (d.startsWith("0")) d = "90" + d.slice(1);
+  else if (d.length === 10) d = "90" + d;
+  const msg = `Sayın ${v.musteri}, ${v.plaka} plakalı aracınızın onarımı tamamlanmıştır. Teslim alabilirsiniz.`;
+  window.open(`https://wa.me/${d}?text=${encodeURIComponent(msg)}`, "_blank");
+};
+window.editPhone = function (key) {
+  const v = vehicles.find(x => x.firebaseKey === key);
+  if (!v) return;
+  const p = prompt("Müşteri telefonu (boş bırakırsanız silinir):", v.telefon || "");
+  if (p !== null) update(ref(db, `vehicles/${key}`), { telefon: p.trim() });
+};
 
-    window.openModal = function() {
-      document.getElementById("vehicleModal").style.display = "flex";
-    }
+/* ---------- Durum geçmişi ---------- */
+window.openHistory = function (key, col) {
+  const item = (col === "archived_vehicles" ? archivedVehicles : vehicles).find(v => v.firebaseKey === key);
+  if (!item) return;
+  const h = Array.isArray(item.gecmis) ? item.gecmis : [];
+  $("historyTitle").textContent = `${item.plaka} — Durum Geçmişi`;
+  $("historyBody").innerHTML = h.length ? h.map((e, i) => {
+    const next = h[i + 1] ? h[i + 1].t : Date.now();
+    const hours = (next - e.t) / 36e5;
+    const dur = hours < 24 ? `${Math.max(1, Math.round(hours))} saat` : `${Math.round(hours / 24)} gün`;
+    return `<div class="hist-row"><div><span class="status-badge ${STATUS_CLASS[e.s] || ""}">${esc(e.s)}</span><small>${new Date(e.t).toLocaleString("tr-TR")}</small></div><strong>${i === h.length - 1 && e.s !== "TESLİM EDİLDİ" ? "şu an • " : ""}${dur}</strong></div>`;
+  }).join("") : `<div class="empty-state">Bu araç için henüz durum geçmişi kaydı yok. Bundan sonraki durum değişiklikleri burada görünecek.</div>`;
+  $("historyModal").style.display = "flex";
+};
+window.closeHistory = () => { $("historyModal").style.display = "none"; };
 
-    window.closeModal = function() {
-      document.getElementById("vehicleModal").style.display = "none";
-      document.getElementById("vehicleForm").reset();
-    }
+/* ---------- Tablolar ---------- */
+function notesCell(v, col) {
+  return `<div class="desc-text">${esc(v.aciklama) || "-"}</div>
+    ${v.yorum ? `<div class="comment-box"><span class="comment-label">💬 Yorum:</span> ${esc(v.yorum)}</div>` : ""}
+    <button type="button" class="btn-small admin-only" onclick="window.openCommentModal('${v.firebaseKey}','${col}')">${v.yorum ? "✏️ Yorumu Düzenle" : "💬 Yorum Ekle"}</button>`;
+}
+function renderCurrentTable() {
+  const search = $("searchInput").value.toLowerCase();
+  const sf = $("statusFilter").value, ins = $("insuranceFilter").value;
+  const rows = vehicles.filter(v => {
+    if (!matchesStatus(v, sf)) return false;
+    if (ins && v.kasko !== ins) return false;
+    return `${v.plaka} ${v.musteri} ${v.kasko} ${v.aciklama} ${v.yorum || ""} ${v.teslimTarih || ""}${isAdmin ? " " + (v.telefon || "") : ""}`.toLowerCase().includes(search);
+  });
+  $("vehicleTableBody").innerHTML = rows.length ? rows.map((v, i) => `
+    <tr>
+      <td><strong>${i + 1}</strong></td>
+      <td><span class="plate"><span class="plate-text">${esc(v.plaka)}</span></span></td>
+      <td><strong>${esc(v.musteri)}</strong>
+        <div class="phone-line admin-only">${v.telefon ? `📞 ${esc(v.telefon)} <button type="button" class="btn-wa" onclick="window.sendWhatsApp('${v.firebaseKey}')">WhatsApp</button>` : ""}
+        <button type="button" class="btn-small" style="margin-top:0" onclick="window.editPhone('${v.firebaseKey}')">${v.telefon ? "✏️" : "📞 Telefon ekle"}</button></div></td>
+      <td>${esc(v.kasko) || "-"}</td>
+      <td>${fmt(v.dosyaTarih)}</td>
+      <td>${daysCell(v)}</td>
+      <td>${fmt(v.onarimTarih)}</td>
+      <td>${etaCell(v)}</td>
+      <td><div class="status-cell">
+        ${isAdmin
+          ? `<select class="status-select ${STATUS_CLASS[v.surec] || "st-devam"}" onchange="window.changeStatus('${v.firebaseKey}', this.value)">${STATUS_LIST.map(s => `<option value="${s}" ${v.surec === s ? "selected" : ""}>${s}</option>`).join("")}</select>`
+          : `<span class="status-badge ${STATUS_CLASS[v.surec] || "st-devam"}">${esc(v.surec)}</span>`}
+        ${deliveryCell(v, "vehicles")}
+        <button type="button" class="btn-small" style="margin-top:0" title="Durum geçmişi" onclick="window.openHistory('${v.firebaseKey}','vehicles')">🕘</button></div></td>
+      <td class="notes-cell">${notesCell(v, "vehicles")}</td>
+      <td class="admin-only"><button type="button" class="btn-danger" onclick="window.deleteVehicle('${v.firebaseKey}','vehicles')">Sil</button></td>
+    </tr>`).join("") : `<tr><td colspan="11"><div class="empty-state">Filtre kriterlerine uygun kayıt bulunamadı.</div></td></tr>`;
+}
+function renderArchive() {
+  const box = $("archiveGroupsContainer");
+  if (!archivedVehicles.length) {
+    box.innerHTML = `<div class="empty-state">Henüz geçmiş aylara taşınmış teslim edilmiş araç yok.</div>`;
+    return;
+  }
+  const g = {};
+  archivedVehicles.forEach(v => { const ym = v.archiveMonth || ymFromDelivery(v.teslimTarih); (g[ym] = g[ym] || []).push(v); });
+  box.innerHTML = Object.keys(g).sort((a, b) => b.localeCompare(a)).map(ym => `
+    <div class="month-group">
+      <div class="month-header"><span class="month-title">🗓️ ${esc(ymLabel(ym))}</span><span class="month-pill">${g[ym].length} Teslim Edilen Araç</span></div>
+      <div class="table-wrapper"><table>
+        <thead><tr><th>Sıra</th><th>Araç Plakası</th><th>Müşteri</th><th>Kasko / Sigorta / Tür</th><th>Dosya Açılış</th><th>Serviste</th><th>Teslim Tarihi</th><th>Açıklama / Yorum</th><th class="admin-only">İşlem</th></tr></thead>
+        <tbody>${g[ym].map((v, i) => `
+          <tr>
+            <td><strong>${i + 1}</strong></td>
+            <td><span class="plate"><span class="plate-text">${esc(v.plaka)}</span></span></td>
+            <td><strong>${esc(v.musteri)}</strong></td>
+            <td>${esc(v.kasko) || "-"}</td>
+            <td>${fmt(v.dosyaTarih)}</td>
+            <td>${daysCell(v)}</td>
+            <td><div class="status-cell">${deliveryCell(v, "archived_vehicles")}<button type="button" class="btn-small" style="margin-top:0" onclick="window.openHistory('${v.firebaseKey}','archived_vehicles')">🕘</button></div></td>
+            <td class="notes-cell">${notesCell(v, "archived_vehicles")}</td>
+            <td class="admin-only"><button type="button" class="btn-danger" onclick="window.deleteVehicle('${v.firebaseKey}','archived_vehicles')">Sil</button></td>
+          </tr>`).join("")}</tbody>
+      </table></div>
+    </div>`).join("");
+}
+function renderAll() { updateStats(); updateInsuranceDropdown(); renderCurrentTable(); renderArchive(); syncActiveCard(); }
 
-    window.saveVehicle = function(e) {
-      e.preventDefault();
-      const selectedSurec = document.getElementById("f_surec").value;
-      const newItem = {
-        id: Date.now(),
-        plaka: document.getElementById("f_plaka").value.trim().toUpperCase(),
-        musteri: document.getElementById("f_musteri").value.trim().toUpperCase(),
-        kasko: document.getElementById("f_kasko").value,
-        dosyaTarih: document.getElementById("f_dosyaTarih").value,
-        onarimTarih: document.getElementById("f_onarimTarih").value,
-        surec: selectedSurec,
-        teslimTarih: selectedSurec === "TESLİM EDİLDİ" ? getTodayFormatted() : "",
-        aciklama: document.getElementById("f_aciklama").value.trim().toUpperCase()
-      };
+/* ---------- Düzenleme işlemleri ---------- */
+window.changeStatus = function (key, status) {
+  const item = vehicles.find(v => v.firebaseKey === key);
+  if (!item || item.surec === status) return;
+  update(ref(db, `vehicles/${key}`), {
+    surec: status,
+    teslimTarih: status === "TESLİM EDİLDİ" ? (item.teslimTarih || todayTr()) : "",
+    gecmis: [...(Array.isArray(item.gecmis) ? item.gecmis : []), { s: status, t: Date.now() }]
+  });
+};
+window.openCommentModal = function (key, col) {
+  const item = (col === "archived_vehicles" ? archivedVehicles : vehicles).find(v => v.firebaseKey === key);
+  if (!item) return;
+  editingCommentKey = { key, col };
+  $("commentModalTitle").textContent = `${item.plaka} — Araç Yorumu`;
+  $("f_yorum").value = item.yorum || "";
+  $("commentModal").style.display = "flex";
+  $("f_yorum").focus();
+};
+window.closeCommentModal = function () { editingCommentKey = null; $("commentModal").style.display = "none"; $("commentForm").reset(); };
+window.saveComment = function (e) {
+  e.preventDefault();
+  if (!editingCommentKey) return;
+  const { key, col } = editingCommentKey;
+  update(ref(db, `${col}/${key}`), { yorum: $("f_yorum").value.trim().toUpperCase() });
+  window.closeCommentModal();
+};
+window.deleteVehicle = function (key, col) {
+  if (confirm("Bu araç kaydını silmek istediğinize emin misiniz?")) remove(ref(db, `${col}/${key}`));
+};
+window.openModal = () => { $("vehicleModal").style.display = "flex"; };
+window.closeModal = () => { $("vehicleModal").style.display = "none"; $("vehicleForm").reset(); };
+window.saveVehicle = function (e) {
+  e.preventDefault();
+  const surec = $("f_surec").value;
+  set(push(vehiclesRef), clean({
+    id: Date.now(),
+    plaka: $("f_plaka").value.trim().toUpperCase(),
+    musteri: $("f_musteri").value.trim().toUpperCase(),
+    telefon: $("f_telefon").value.trim(),
+    kasko: $("f_kasko").value,
+    dosyaTarih: $("f_dosyaTarih").value,
+    onarimTarih: $("f_onarimTarih").value,
+    tahminiTeslim: $("f_tahmini").value,
+    surec,
+    teslimTarih: surec === "TESLİM EDİLDİ" ? todayTr() : "",
+    aciklama: $("f_aciklama").value.trim().toUpperCase(),
+    yorum: $("f_yorum_yeni").value.trim().toUpperCase(),
+    gecmis: [{ s: surec, t: Date.now() }]
+  }));
+  window.closeModal();
+};
 
-      const newRef = push(dbRef);
-      set(newRef, newItem);
-      window.closeModal();
-    }
+window.exportCSV = function () {
+  const headers = ["Dönem","Sıra No","ARAÇ PLAKASI","MÜŞTERİ ADI / UNVAN","KASKO UNVAN","DOSYA AÇILMA TARİHİ","ONARIM BAŞLAMA TARİHİ","TAHMİNİ TESLİM","ONARIM SÜRECİ","TESLİM TARİHİ","AÇIKLAMA","YORUM"];
+  const mk = (p, v) => [p, 0, v.plaka, v.musteri, v.kasko, fmt(v.dosyaTarih), fmt(v.onarimTarih), fmt(v.tahminiTeslim), v.surec, v.teslimTarih || "-", v.aciklama, v.yorum || ""];
+  const all = [
+    ...vehicles.map(v => mk(`Aktif (${ymLabel(curYM())})`, v)),
+    ...archivedVehicles.map(v => mk(`Geçmiş Ay (${ymLabel(v.archiveMonth || ymFromDelivery(v.teslimTarih))})`, v))
+  ].map((r, i) => { r[1] = i + 1; return r; });
+  const rows = all.map(r => r.map(x => `"${(x || "").toString().replace(/"/g, '""')}"`).join(";"));
+  const blob = new Blob(["\uFEFF" + [headers.join(";"), ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Guncel_Kaporta_Takip_${new Date().toLocaleDateString("tr-TR")}.csv`;
+  a.click();
+};
 
-    window.exportCSV = function() {
-      const headers = ["Sıra No", "ARAÇ PLAKASI", "MÜŞTERİ ADI / UNVAN", "KASKO UNVAN", "DOSYA AÇILMA TARİHİ", "ONARIM BAŞLAMA TARİHİ", "ONARIM SÜRECİ", "TESLİM TARİHİ", "AÇIKLAMA"];
-      const rows = vehicles.map((v, i) => [
-        i + 1, v.plaka, v.musteri, v.kasko, formatDate(v.dosyaTarih), formatDate(v.onarimTarih), v.surec, v.teslimTarih || "-", v.aciklama
-      ].map(val => `"${(val || "").toString().replace(/"/g, '""')}"`).join(";"));
-
-      const csvContent = "\uFEFF" + [headers.join(";"), ...rows].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `Guncel_Kaporta_Takip_${new Date().toLocaleDateString("tr-TR")}.csv`;
-      link.click();
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById("currentDateText").textContent =
-        "Canlı Bulut Atölye Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      
-      document.getElementById("searchInput").addEventListener("input", renderTable);
-      document.getElementById("statusFilter").addEventListener("change", renderTable);
-      document.getElementById("insuranceFilter").addEventListener("change", renderTable);
-      document.getElementById("vehicleForm").addEventListener("submit", window.saveVehicle);
-    });
-  </script>
-
-  <style>
-    :root {
-      --bg: #f1f5f9; --surface: #ffffff; --primary: #1e293b; --accent: #2563eb; --border: #e2e8f0; --text: #0f172a; --muted: #64748b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 20px; }
-    .container { max-width: 1400px; margin: 0 auto; }
-    header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-      color: #ffffff; padding: 24px 28px; border-radius: 14px;
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2); margin-bottom: 22px;
-    }
-    header h1 { font-size: 1.5rem; font-weight: 700; color: #ffffff; }
-    header p { color: #cbd5e1; font-size: 0.9rem; margin-top: 4px; }
-    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    button {
-      cursor: pointer; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; font-size: 0.875rem;
-      transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
-    }
-    .btn-primary { background: #3b82f6; color: #fff; }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-light { background: rgba(255,255,255,0.15); color: #fff; backdrop-filter: blur(4px); }
-    .btn-light:hover { background: rgba(255,255,255,0.25); }
-    .btn-success { background: #10b981; color: #fff; }
-    .btn-success:hover { background: #059669; }
-    .btn-danger { background: #ef4444; color: #fff; padding: 6px 10px; font-size: 0.8rem; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px; }
-    .stat-card {
-      background: var(--surface); padding: 18px 20px; border-radius: 12px; border: 1px solid var(--border);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.03); border-left: 4px solid var(--accent);
-    }
-    .stat-card.orange { border-left-color: #f59e0b; }
-    .stat-card.purple { border-left-color: #8b5cf6; }
-    .stat-card.green { border-left-color: #10b981; }
-    .stat-card.gray { border-left-color: #64748b; }
-    .stat-title { font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
-    .stat-value { font-size: 1.8rem; font-weight: 800; margin-top: 6px; color: var(--text); }
-    .toolbar {
-      background: var(--surface); padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border);
-      display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 18px;
-    }
-    .toolbar input, .toolbar select {
-      padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; outline: none; color: var(--text); background: #fff;
-    }
-    .toolbar input { flex: 1; min-width: 240px; }
-    .table-wrapper {
-      background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-    }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
-    thead { background: #f8fafc; border-bottom: 2px solid var(--border); }
-    th { padding: 14px 16px; font-weight: 700; color: #334155; white-space: nowrap; font-size: 0.8rem; text-transform: uppercase; }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
-    tr:hover { background: #f8fafc; }
-    .plate {
-      display: inline-flex; align-items: center; border: 1.5px solid #1e293b; border-radius: 5px; overflow: hidden;
-      font-weight: 800; font-size: 0.85rem; background: #fff; letter-spacing: 0.5px; white-space: nowrap;
-    }
-    .plate::before { content: "TR"; background: #1d4ed8; color: #fff; font-size: 0.6rem; padding: 4px 3px; margin-right: 6px; }
-    .plate-text { padding-right: 8px; color: #0f172a; }
-    .status-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .status-select { padding: 6px 10px; border-radius: 20px; font-weight: 700; font-size: 0.78rem; border: 1px solid transparent; cursor: pointer; outline: none; }
-    .delivery-badge { background: #e2e8f0; color: #1e293b; font-size: 0.75rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
-    .st-modul { background: #ffedd5; color: #9a3412; }
-    .st-eksper { background: #fef3c7; color: #92400e; }
-    .st-pert { background: #fee2e2; color: #991b1b; }
-    .st-parca { background: #fce7f3; color: #9d174d; }
-    .st-randevu { background: #e0e7ff; color: #3730a3; }
-    .st-devam { background: #dbeafe; color: #1e40af; }
-    .st-kontrol { background: #dcfce7; color: #166534; }
-    .st-teslim { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
-    .modal-backdrop {
-      display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(2px);
-      justify-content: center; align-items: center; padding: 16px; z-index: 100;
-    }
-    .modal { background: #fff; width: 100%; max-width: 620px; border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-    .modal h2 { margin-bottom: 16px; font-size: 1.25rem; color: var(--text); }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
-    .form-group.full { grid-column: 1 / -1; }
-    .form-group label { font-size: 0.82rem; font-weight: 600; color: #475569; }
-    .form-group input, .form-group select, .form-group textarea {
-      padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; color: var(--text);
-    }
-    .modal-footer { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
-  </style>
+window.addEventListener("DOMContentLoaded", () => {
+  resetLoginFields();
+  $("currentDateText").textContent = "Canlı Bulut Atölye Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  $("searchInput").addEventListener("input", renderAll);
+  $("statusFilter").addEventListener("change", renderAll);
+  $("insuranceFilter").addEventListener("change", renderAll);
+  $("vehicleForm").addEventListener("submit", window.saveVehicle);
+  $("commentForm").addEventListener("submit", window.saveComment);
+  $("loginForm").addEventListener("submit", window.doLogin);
+});
+</script>
 </head>
 <body>
-
 <div class="container">
   <header>
     <div>
@@ -358,119 +545,139 @@
       <p id="currentDateText">Atölye Durum Raporu</p>
     </div>
     <div class="header-actions">
-      <button type="button" class="btn-primary" onclick="window.openModal()">+ Yeni Araç Ekle</button>
+      <button type="button" class="btn-primary admin-only" onclick="window.openModal()">+ Yeni Araç Ekle</button>
       <button type="button" class="btn-success" onclick="window.exportCSV()">Excel (CSV) İndir</button>
+      <button type="button" class="btn-light admin-only" onclick="window.manualMonthRollover()">🗓️ Bu Ayı Arşivle</button>
+      <button type="button" class="btn-warn admin-only" onclick="window.clearNonDeliveredVehicles()">🧹 Teslim Dışındakileri Temizle</button>
       <button type="button" class="btn-light" onclick="window.print()">Yazdır / PDF Al</button>
+      <button type="button" class="btn-light viewer-only" onclick="window.openLogin()">🔒 Yönetici Girişi</button>
+      <button type="button" class="btn-light admin-only" onclick="window.doLogout()">Çıkış</button>
     </div>
   </header>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-title">Atölyedeki Aktif Araç</div>
-      <div class="stat-value" id="statActive">0</div>
-    </div>
-    <div class="stat-card orange">
-      <div class="stat-title">Onay / Parça / Randevu</div>
-      <div class="stat-value" id="statWaiting">0</div>
-    </div>
-    <div class="stat-card purple">
-      <div class="stat-title">Onarım Devam Ediyor</div>
-      <div class="stat-value" id="statWorking">0</div>
-    </div>
-    <div class="stat-card green">
-      <div class="stat-title">Son Kontrolde</div>
-      <div class="stat-value" id="statReady">0</div>
-    </div>
-    <div class="stat-card gray">
-      <div class="stat-title">Teslim Edilen (Arşiv)</div>
-      <div class="stat-value" id="statDelivered">0</div>
+  <div class="nav-tabs">
+    <div class="tab-group">
+      <button type="button" id="tabCurrentBtn" class="tab-btn active" onclick="window.switchTab('current')">📋 Aktif Panel</button>
+      <button type="button" id="tabArchiveBtn" class="tab-btn" onclick="window.switchTab('archive')">🗂️ Geçmiş Aylar <span class="tab-count" id="archiveTabCount">0</span></button>
     </div>
   </div>
 
-  <div class="toolbar">
-    <input type="text" id="searchInput" placeholder="Plaka, müşteri adı, sigorta veya açıklama ara...">
-    <select id="statusFilter">
-      <option value="ALL">Tüm Süreçler (Aktifler)</option>
-      <option value="ALL_INC">Tümü (Teslim Edilenler Dahil)</option>
-      <option value="MODÜL ONAY BEKLİYOR">MODÜL ONAY BEKLİYOR</option>
-      <option value="EKSPER ONAYI BEKLİYOR">EKSPER ONAYI BEKLİYOR</option>
-      <option value="PERT DURUMU BEKLİYOR">PERT DURUMU BEKLİYOR</option>
-      <option value="PARÇALARI SİPARİŞ EDİLDİ">PARÇALARI SİPARİŞ EDİLDİ</option>
-      <option value="ONARIM RANDEVUSU VERİLDİ">ONARIM RANDEVUSU VERİLDİ</option>
-      <option value="ONARIM DEVAM EDİYOR">ONARIM DEVAM EDİYOR</option>
-      <option value="SON KONTROLDE">SON KONTROLDE</option>
-      <option value="TESLİM EDİLDİ">TESLİM EDİLDİ</option>
-    </select>
-    <select id="insuranceFilter">
-      <option value="">Tüm Sigorta / Kasko Şirketleri</option>
-    </select>
-  </div>
+  <section id="currentTabSection">
+    <div class="stats-grid">
+      <div class="stat-card orange" data-filter="GRP_ONAY" onclick="window.selectGroupFilter('GRP_ONAY')">
+        <div class="stat-top"><span class="stat-title">Onay Bekleyen</span><span class="stat-badge">Filtrele</span></div>
+        <div class="stat-value" id="statApproval">0</div>
+        <div class="stat-sub" id="statApprovalSub">Modül: 0 • Eksper: 0</div>
+      </div>
+      <div class="stat-card pink" data-filter="PARÇALARI SİPARİŞ EDİLDİ" onclick="window.selectGroupFilter('PARÇALARI SİPARİŞ EDİLDİ')">
+        <div class="stat-top"><span class="stat-title">Parça Siparişinde</span><span class="stat-badge">Filtrele</span></div>
+        <div class="stat-value" id="statParts">0</div>
+        <div class="stat-sub">Parçaları sipariş edilen araçlar</div>
+      </div>
+      <div class="stat-card purple" data-filter="GRP_ONARIM" onclick="window.selectGroupFilter('GRP_ONARIM')">
+        <div class="stat-top"><span class="stat-title">Onarım / Randevu / Kontrol</span><span class="stat-badge">Filtrele</span></div>
+        <div class="stat-value" id="statRepairGroup">0</div>
+        <div class="stat-sub" id="statRepairSub">Randevu: 0 • Onarımda: 0 • Son Kontrol: 0</div>
+      </div>
+      <div class="stat-card red" data-filter="LATE" onclick="window.selectGroupFilter('LATE')">
+        <div class="stat-top"><span class="stat-title">Teslimi Geciken</span><span class="stat-badge">Filtrele</span></div>
+        <div class="stat-value" id="statLate">0</div>
+        <div class="stat-sub">Tahmini teslim tarihi geçenler</div>
+      </div>
+      <div class="stat-card gray" data-filter="TESLİM EDİLDİ" onclick="window.selectGroupFilter('TESLİM EDİLDİ')">
+        <div class="stat-top"><span class="stat-title">Teslim Edilen</span><span class="stat-badge">Filtrele</span></div>
+        <div class="stat-value" id="statDelivered">0</div>
+        <div class="stat-sub" id="statDeliveredSub">Teslimatı tamamlananlar</div>
+      </div>
+    </div>
 
-  <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>Sıra</th>
-          <th>Araç Plakası</th>
-          <th>Müşteri Adı / Unvan</th>
-          <th>Kasko / Sigorta / Tür</th>
-          <th>Dosya Açılış</th>
-          <th>Onarım Başlama</th>
-          <th>Onarım Süreci</th>
-          <th>Açıklama / Yapılan İşlem</th>
-          <th class="no-print">İşlem</th>
-        </tr>
-      </thead>
-      <tbody id="vehicleTableBody"></tbody>
-    </table>
-  </div>
+    <div class="toolbar">
+      <input type="text" id="searchInput" placeholder="Plaka, müşteri, kasko, açıklama veya yorum ara...">
+      <select id="statusFilter">
+        <option value="ALL">Aktif Araçlar (Teslim Hariç)</option>
+        <option value="ALL_INC">Tüm Kayıtlar (Teslim Dahil)</option>
+        <option value="GRP_ONAY">Grup: Onay Bekleyen (Modül + Eksper)</option>
+        <option value="GRP_ONARIM">Grup: Randevu + Onarım + Son Kontrol</option>
+        <option value="LATE">Teslimi Gecikenler</option>
+        <option value="MODÜL ONAY BEKLİYOR">MODÜL ONAY BEKLİYOR</option>
+        <option value="EKSPER ONAYI BEKLİYOR">EKSPER ONAYI BEKLİYOR</option>
+        <option value="PERT DURUMU BEKLİYOR">PERT DURUMU BEKLİYOR</option>
+        <option value="PARÇALARI SİPARİŞ EDİLDİ">PARÇALARI SİPARİŞ EDİLDİ</option>
+        <option value="ONARIM RANDEVUSU VERİLDİ">ONARIM RANDEVUSU VERİLDİ</option>
+        <option value="ONARIM DEVAM EDİYOR">ONARIM DEVAM EDİYOR</option>
+        <option value="SON KONTROLDE">SON KONTROLDE</option>
+        <option value="TESLİM EDİLDİ">TESLİM EDİLDİ</option>
+      </select>
+      <select id="insuranceFilter">
+        <option value="">Tüm Sigorta / Kasko Şirketleri</option>
+      </select>
+      <button type="button" class="btn-reset" onclick="window.resetFilters()">Sıfırla</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Sıra</th>
+            <th>Araç Plakası</th>
+            <th>Müşteri</th>
+            <th>Kasko / Sigorta</th>
+            <th>Dosya Açılış</th>
+            <th>Serviste</th>
+            <th>Onarım Başlama</th>
+            <th>Tahmini Teslim</th>
+            <th>Onarım Süreci</th>
+            <th>Açıklama / Yorum</th>
+            <th class="admin-only">İşlem</th>
+          </tr>
+        </thead>
+        <tbody id="vehicleTableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="archiveTabSection" style="display:none">
+    <div id="archiveGroupsContainer"></div>
+  </section>
 </div>
 
+<!-- Yeni Araç Modalı -->
 <div class="modal-backdrop" id="vehicleModal">
   <div class="modal">
     <h2>Yeni Araç Kaydı Ekle</h2>
     <form id="vehicleForm">
       <div class="form-grid">
         <div class="form-group">
-          <label>Araç Plakası *</label>
-          <input type="text" id="f_plaka" required placeholder="Örn: 34ABC123" style="text-transform:uppercase">
+          <label for="f_plaka">Araç Plakası *</label>
+          <input type="text" id="f_plaka" required placeholder="34 ABC 123">
         </div>
         <div class="form-group">
-          <label>Müşteri Adı / Unvan *</label>
-          <input type="text" id="f_musteri" required placeholder="Müşteri veya Firma Adı">
+          <label for="f_musteri">Müşteri Adı / Unvan *</label>
+          <input type="text" id="f_musteri" required placeholder="AD SOYAD / FİRMA">
         </div>
         <div class="form-group">
-          <label>Kasko / Sigorta / İşlem Türü</label>
-          <select id="f_kasko">
-            <option value="ÜCRETLİ">ÜCRETLİ</option>
-            <option value="GARANTİ">GARANTİ</option>
-            <option value="ACNTÜRK SİGORTA">ACNTÜRK SİGORTA</option>
-            <option value="ALLİANZ SİGORTA">ALLİANZ SİGORTA</option>
-            <option value="ANA SİGORTA">ANA SİGORTA</option>
-            <option value="ANADOLU SİGORTA">ANADOLU SİGORTA</option>
-            <option value="ANKARA SİGORTA">ANKARA SİGORTA</option>
-            <option value="AXA SİGORTA">AXA SİGORTA</option>
-            <option value="BEREKET SİGORTA">BEREKET SİGORTA</option>
-            <option value="DOĞA SİGORTA">DOĞA SİGORTA</option>
-            <option value="ETHİCA SİGORTA">ETHİCA SİGORTA</option>
-            <option value="FİBA SİGORTA">FİBA SİGORTA</option>
-            <option value="HDİ SİGORTA">HDİ SİGORTA</option>
-            <option value="HDİ KATILIM SİGORTA">HDİ KATILIM SİGORTA</option>
-            <option value="HEPİYİ SİGORTA">HEPİYİ SİGORTA</option>
-            <option value="MAGDEBURGER SİGORTA">MAGDEBURGER SİGORTA</option>
-            <option value="NEOVA SİGORTA">NEOVA SİGORTA</option>
-            <option value="QUICK SİGORTA">QUICK SİGORTA</option>
-            <option value="RAY SİGORTA">RAY SİGORTA</option>
-            <option value="SOMPO SİGORTA">SOMPO SİGORTA</option>
-            <option value="TÜRKİYE SİGORTA">TÜRKİYE SİGORTA</option>
-            <option value="TÜRKİYE KATILIM SİGORTA">TÜRKİYE KATILIM SİGORTA</option>
-            <option value="UNİCO SİGORTA">UNİCO SİGORTA</option>
-            <option value="ZURİCH SİGORTA">ZURİCH SİGORTA</option>
-          </select>
+          <label for="f_telefon">Telefon (WhatsApp)</label>
+          <input type="text" id="f_telefon" placeholder="05XX XXX XX XX">
         </div>
         <div class="form-group">
-          <label>Onarım Süreci</label>
-          <select id="f_surec">
+          <label for="f_kasko">Kasko / Sigorta Şirketi</label>
+          <input type="text" id="f_kasko" placeholder="Örn: Allianz, Anadolu, Trafik">
+        </div>
+        <div class="form-group">
+          <label for="f_dosyaTarih">Dosya Açılma Tarihi</label>
+          <input type="date" id="f_dosyaTarih">
+        </div>
+        <div class="form-group">
+          <label for="f_onarimTarih">Onarım Başlama Tarihi</label>
+          <input type="date" id="f_onarimTarih">
+        </div>
+        <div class="form-group">
+          <label for="f_tahmini">Tahmini Teslim Tarihi</label>
+          <input type="date" id="f_tahmini">
+        </div>
+        <div class="form-group">
+          <label for="f_surec">Onarım Süreci *</label>
+          <select id="f_surec" required>
             <option value="MODÜL ONAY BEKLİYOR">MODÜL ONAY BEKLİYOR</option>
             <option value="EKSPER ONAYI BEKLİYOR">EKSPER ONAYI BEKLİYOR</option>
             <option value="PERT DURUMU BEKLİYOR">PERT DURUMU BEKLİYOR</option>
@@ -481,26 +688,72 @@
             <option value="TESLİM EDİLDİ">TESLİM EDİLDİ</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Dosya Açılma Tarihi</label>
-          <input type="date" id="f_dosyaTarih">
-        </div>
-        <div class="form-group">
-          <label>Onarım Başlama Tarihi</label>
-          <input type="date" id="f_onarimTarih">
+        <div class="form-group full">
+          <label for="f_aciklama">Hasar / Onarım Açıklaması</label>
+          <textarea id="f_aciklama" rows="2" placeholder="Yapılacak işlemler, parça notları..."></textarea>
         </div>
         <div class="form-group full">
-          <label>Açıklama / Hasar Detayı</label>
-          <textarea id="f_aciklama" rows="2" placeholder="Örn: Ön tampon değişimi, sağ çamurluk boya..."></textarea>
+          <label for="f_yorum_yeni">Atölye Yorumu</label>
+          <input type="text" id="f_yorum_yeni" placeholder="Ek not veya yorum...">
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn-danger" style="background:#94a3b8" onclick="window.closeModal()">İptal</button>
+        <button type="button" class="btn-cancel" onclick="window.closeModal()">İptal</button>
         <button type="submit" class="btn-primary">Kaydet</button>
       </div>
     </form>
   </div>
 </div>
 
+<!-- Yorum Modalı -->
+<div class="modal-backdrop" id="commentModal">
+  <div class="modal">
+    <h2 id="commentModalTitle">Araç Yorumu</h2>
+    <form id="commentForm">
+      <div class="form-group full">
+        <label for="f_yorum">Yorum Metni</label>
+        <textarea id="f_yorum" rows="3" placeholder="Araçla ilgili not veya yorum girin..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="window.closeCommentModal()">İptal</button>
+        <button type="submit" class="btn-primary">Yorumu Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Durum Geçmişi Modalı -->
+<div class="modal-backdrop" id="historyModal">
+  <div class="modal">
+    <h2 id="historyTitle">Durum Geçmişi</h2>
+    <div id="historyBody"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn-reset" onclick="window.closeHistory()">Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Yönetici Giriş Modalı -->
+<div class="modal-backdrop" id="loginModal">
+  <div class="modal">
+    <h2>Yönetici Girişi</h2>
+    <form id="loginForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="l_email">E-posta</label>
+          <input type="email" id="l_email" value="hasar1@orsaoto.com" readonly required>
+        </div>
+        <div class="form-group full">
+          <label for="l_pass">Şifre</label>
+          <input type="password" id="l_pass" value="Hasancrk57." readonly required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="window.closeLogin()">İptal</button>
+        <button type="submit" class="btn-primary">Giriş Yap</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
