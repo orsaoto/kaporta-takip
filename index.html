@@ -560,7 +560,7 @@ function renderCurrentTable() {
       <td><strong>${esc(v.musteri)}</strong>
         <div class="phone-line">${v.telefon ? `<span>📞 ${esc(v.telefon)}</span>` : ""}
         <button type="button" class="btn-wa admin-only" title="Mevcut sürece uygun WhatsApp mesajı gönder" onclick="window.sendWhatsApp('${v.firebaseKey}')" ${v.telefon ? "" : "style=\"display:none!important\""}>WhatsApp</button>
-        <button type="button" class="btn-small admin-only" style="margin-top:0" onclick="window.editPhone('${v.firebaseKey}')">${v.telefon ? "✏️" : "📞 Telefon ekle"}</button></div></td>
+        <button type="button" class="btn-small admin-only" style="margin-top:0;padding:4px 7px;font-size:13px;min-width:27px;justify-content:center" title="Telefon ekle / düzenle" aria-label="Telefon ekle / düzenle" onclick="window.editPhone('${v.firebaseKey}')">📞+</button></div></td>
       <td>${esc(v.kasko) || "-"}</td>
       <td>${fmt(v.dosyaTarih)}</td>
       <td>${daysCell(v)}</td>
