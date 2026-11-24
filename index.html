@@ -99,7 +99,6 @@ tbody tr:hover{background:#f8faff}
 .form-group.full{grid-column:1/-1}
 .form-group label{font-size:.8rem;font-weight:700;color:#334155}
 .form-group input,.form-group select,.form-group textarea{padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:10px;font-size:.9rem;outline:none}
-.form-group input[readonly]{background:#f8fafc;color:#334155;font-weight:700}
 .modal-footer{margin-top:22px;display:flex;justify-content:flex-end;gap:10px}
 .hist-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eef2f6;font-size:.86rem;align-items:center}
 .hist-row small{color:var(--muted);display:block;margin-top:2px}
@@ -125,9 +124,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
-
-const ADMIN_EMAIL = "hasar1@orsaoto.com";
-const ADMIN_PASS = "Hasancrk57.";
 
 const LATE_DAYS = 15;
 const STATUS_LIST = ["MODÜL ONAY BEKLİYOR","EKSPER ONAYI BEKLİYOR","PERT DURUMU BEKLİYOR","PARÇALARI SİPARİŞ EDİLDİ","ONARIM RANDEVUSU VERİLDİ","ONARIM DEVAM EDİYOR","SON KONTROLDE","TESLİM EDİLDİ"];
@@ -166,11 +162,6 @@ function clean(v) {
   };
 }
 
-function resetLoginFields() {
-  $("l_email").value = ADMIN_EMAIL;
-  $("l_pass").value = ADMIN_PASS;
-}
-
 /* ---------- Giriş / çıkış (Kalıcı oturum) ---------- */
 onAuthStateChanged(auth, user => {
   isAdmin = !!user;
@@ -180,21 +171,22 @@ onAuthStateChanged(auth, user => {
   runRollover(false);
 });
 window.openLogin = () => {
-  resetLoginFields();
+  $("loginForm").reset();
   $("loginModal").style.display = "flex";
+  $("l_email").focus();
 };
 window.closeLogin = () => {
   $("loginModal").style.display = "none";
-  resetLoginFields();
+  $("loginForm").reset();
 };
 window.doLogin = async function (e) {
   e.preventDefault();
   try {
     await setPersistence(auth, browserLocalPersistence);
-    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASS);
+    await signInWithEmailAndPassword(auth, $("l_email").value.trim(), $("l_pass").value);
     window.closeLogin();
   } catch (err) {
-    alert("Giriş başarısız: " + err.message);
+    alert("Giriş başarısız: e-posta veya şifre hatalı.");
   }
 };
 window.doLogout = () => signOut(auth);
@@ -526,7 +518,6 @@ window.exportCSV = function () {
 };
 
 window.addEventListener("DOMContentLoaded", () => {
-  resetLoginFields();
   $("currentDateText").textContent = "Canlı Bulut Atölye Raporu • " + new Date().toLocaleDateString("tr-TR", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   $("searchInput").addEventListener("input", renderAll);
   $("statusFilter").addEventListener("change", renderAll);
@@ -741,11 +732,11 @@ window.addEventListener("DOMContentLoaded", () => {
       <div class="form-grid">
         <div class="form-group full">
           <label for="l_email">E-posta</label>
-          <input type="email" id="l_email" value="hasar1@orsaoto.com" readonly required>
+          <input type="email" id="l_email" autocomplete="off" placeholder="E-posta adresinizi girin" required>
         </div>
         <div class="form-group full">
           <label for="l_pass">Şifre</label>
-          <input type="password" id="l_pass" value="Hasancrk57." readonly required>
+          <input type="password" id="l_pass" autocomplete="new-password" placeholder="Şifrenizi girin" required>
         </div>
       </div>
       <div class="modal-footer">
